@@ -42,206 +42,85 @@
       </li>
     </ul>
   </nav>
-  <!-- /.navbar -->
-      <!-- Navbar -->
-      <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-        <!-- Left navbar links -->
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-          </li>
-        </ul>
-  
-        <!-- Right navbar links -->
-	<ul class="navbar-nav ml-auto">
-	  <li class="nav-item">
-	    <a class="nav-link" href="#" data-toggle="modal" data-target="#subscriptionModal">
-	      Abonelik
-	    </a>
-	  </li>
-	  <li class="nav-item">
-	    <a class="nav-link" href="#" data-toggle="modal" data-target="#loginModal" onclick="checkLoggedIn()">Giriş Yap</a>
-	  </li>
-	</ul>
-	</nav>
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+    </ul>
 
-	<!-- Choose a File Button -->
-	<div class="row">
-	  <div class="col-md-12">
-	    <div class="card">
-	      <div class="card-header">
-		<h5 class="card-title">Choose a File</h5>
-	      </div>
-	      <div class="card-body">
-		<form action="/" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
-		  <input type="file" id="file-input" name="file">
-		  <label for="file-input" class="btn btn-primary">Choose a File</label>
-		  <span id="file-name"></span>
-		  <input type="submit" value="Upload" onclick="checkAuthentication(event)">
-		  <input type="text" name="target" placeholder="Target">
-		  <input type="checkbox" name="warning" checked> Warning
-		  <input type="checkbox" name="return_stats"> Return Statistics
-		  <input type="number" name="comp_ratio" step="0.1" min="0.0" max="1.0" value="1.0">
-		</form>
-	      </div>
-	    </div>
-	  </div>
-	</div>
+<!-- Right navbar links -->
+<ul class="navbar-nav ml-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="#" data-toggle="modal" data-target="#signupModal">
+      Sign Up
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="#" data-toggle="modal" data-target="#signinModal">
+      Sign In
+    </a>
+  </li>
+</ul>
+</nav>
 
-	<!-- Giriş Yap Modal -->
-	<div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" aria-hidden="true">
-	  <div class="modal-dialog modal-dialog-centered" role="document">
-	    <div class="modal-content">
-	      <div class="modal-header">
-		<h5 class="modal-title" id="loginModalLabel">Giriş Yap</h5>
-		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-		  <span aria-hidden="true">&times;</span>
-		</button>
-	      </div>
-	      <div class="modal-body">
-		<form action="/" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
-		  <div class="form-group">
-		    <label for="emailInput">E-posta Adresi</label>
-		    <input type="email" class="form-control" id="emailInput" placeholder="E-posta adresinizi girin">
-		  </div>
-		  <div class="form-group">
-		    <label for="passwordInput">Şifre</label>
-		    <input type="password" class="form-control" id="passwordInput" placeholder="Şifrenizi girin">
-		  </div>
-		</form>
-	      </div>
-	      <div class="modal-footer">
-		<!-- Kapat butonunu kaldırdık -->
-		<button type="button" class="btn btn-primary" onclick="performLogin()">Giriş Yap</button>
-	      </div>
-	    </div>
-	  </div>
-	</div>
+<!-- Sign Up Modal -->
+<div class="modal fade" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="signupModalLabel">Sign Up</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="/register">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Sign Up</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
-	<!-- JavaScript -->
-	<script>
-	  var kullaniciBilgileri = {};
-	  var kullaniciGirisi = false;
-
-	  function aboneOl() {
-	    var emailInput = document.getElementById("email");
-	    var passwordInput = document.getElementById("password");
-
-	    var email = emailInput.value;
-	    var password = passwordInput.value;
-
-	    kullaniciBilgileri[email] = password;
-
-	    var successMessage = document.getElementById("successMessage");
-	    successMessage.style.display = "block";
-
-	    $('#subscriptionModal').modal('hide');
-	  }
-
-	  function performLogin() {
-	    var emailInput = document.getElementById("emailInput");
-	    var passwordInput = document.getElementById("passwordInput");
-
-	    var email = emailInput.value;
-	    var password = passwordInput.value;
-
-	    if (email in kullaniciBilgileri && kullaniciBilgileri[email] === password) {
-	      alert("Giriş başarılı!");
-	      document.getElementById("loginModalLabel").innerText = "Giriş Başarıyla Tamamlandı";
-	      $('#loginModal').modal('hide');
-	      kullaniciGirisi = true;
-	      // Daha fazla işlem yapabilirsiniz...
-	    } else {
-	      // Kullanıcı adı veya şifre yanlış
-	      alert("Kullanıcı adı veya şifre yanlış!");
-	    }
-	  }
-
-	  function checkAuthentication(event) {
-	    if (!kullaniciGirisi) {
-	      event.preventDefault();
-	      alert("Please sign in or sign up");
-	    }
-	  }
-	</script>
+<!-- Sign In Modal -->
+<div class="modal fade" id="signinModal" tabindex="-1" role="dialog" aria-labelledby="signinModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="signinModalLabel">Sign In</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="/login">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 
-
-
-	
-
-	<!-- Subscription Modal -->
-	<div class="modal fade" id="subscriptionModal" tabindex="-1" role="dialog" aria-labelledby="subscriptionModalLabel" aria-hidden="true">
-	  <div class="modal-dialog" role="document">
-	    <div class="modal-content">
-	      <div class="modal-header">
-		<h5 class="modal-title" id="subscriptionModalLabel">Abonelik Başvurusu</h5>
-		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-		  <span aria-hidden="true">&times;</span>
-		</button>
-	      </div>
-	      <div class="modal-body">
-		<form>
-		  <div class="form-group">
-		    <label for="name">İsim</label>
-		    <input type="text" class="form-control" id="name" placeholder="İsminizi girin" required>
-		  </div>
-		  <div class="form-group">
-		    <label for="surname">Soyisim</label>
-		    <input type="text" class="form-control" id="surname" placeholder="Soyisminizi girin" required>
-		  </div>
-		  <div class="form-group">
-		    <label for="email">E-posta</label>
-		    <input type="email" class="form-control" id="email" placeholder="E-posta adresinizi girin" required>
-		  </div>
-		  <div class="form-group">
-		    <label for="password">Şifre</label>
-		    <input type="password" class="form-control" id="password" placeholder="Şifrenizi girin" required>
-		  </div>
-		</form>
-	      </div>
-	      <div class="modal-footer">
-		<button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
-		<button type="button" class="btn btn-primary" onclick="aboneOl()">Abone Ol</button>
-	      </div>
-	    </div>
-	  </div>
-	</div>
-	<!-- /.modal -->
-	<!-- Abonelik Başvurusu Başarılı Mesajı -->
-	<div id="successMessage" class="alert alert-success alert-dismissible fade show" role="alert" style="display: none;">
-	  Abonelik başarıyla tamamlandı!
-	  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-	    <span aria-hidden="true">&times;</span>
-	  </button>
-	</div>
-	<!-- /.successMessage -->
-
-	<script>
-	  function submitSubscriptionForm() {
-	    var firstName = document.getElementById("firstName").value;
-	    var lastName = document.getElementById("lastName").value;
-	    var email = document.getElementById("email").value;
-	    var password = document.getElementById("password").value;
-
-	    // Abonelik formunu gönderme işlemleri
-	    // ...
-
-	    // Abonelik formunu başarıyla tamamladığınızı göstermek için mesajı görüntüleme
-	    var successMessage = document.getElementById("successMessage");
-	    successMessage.style.display = "block";
-	  }
-
-	  function closeModal() {
-	    var modal = document.getElementById("subscriptionModal");
-	    var successMessage = document.getElementById("successMessage");
-	    modal.style.display = "none";
-	    successMessage.style.display = "none";
-	  }
-	</script>
-
-
-      
     <!-- /.navbar -->
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -311,9 +190,29 @@
   <div class="content-wrapper">
   <!-- Choose a File Button -->
 <!-- Choose a File Button -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">Choose a File</h5>
+      </div>
+      <div class="card-body">
+        <form action="/" method="post" enctype="multipart/form-data">
+          <input type="file" id="file-input" name="file">
+          <label for="file-input" class="btn btn-primary">Choose a File</label>
+          <span id="file-name"></span>
+          <input type="submit" value="Upload">
+          <input type="text" name="target" placeholder="Target">
+          <input type="checkbox" name="warning" checked> Warning
+          <input type="checkbox" name="return_stats"> Return Statistics
+          <input type="number" name="comp_ratio" step="0.1" min="0.0" max="1.0" value="1.0">
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
-
-	  
+  
     <!-- Content Header (Page header) -->
     <div class="content-header">
       <div class="container-fluid">
