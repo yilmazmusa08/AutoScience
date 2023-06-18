@@ -2,28 +2,123 @@ import os
 import json
 import uvicorn
 import warnings
-import numpy as np
 import pandas as pd
 from typing import List
-from fastapi import FastAPI, File, UploadFile, APIRouter
-from typing import List, Dict
+from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
-from fastapi import FastAPI, Form, Request, Body
+from fastapi import FastAPI, Form, Request
 from type_pred import *
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.decomposition import PCA
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from fastapi import HTTPException
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_login.exceptions import InvalidCredentialsException
+from fastapi_login import LoginManager
+
+SECRET = "super-secret-key"
+manager = LoginManager(
+    SECRET, '/login',
+    use_cookie=True
+)
+
+engine = create_engine('sqlite:///database.db', echo=True)
+Base = declarative_base()
+Session = sessionmaker(bind=engine)
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String)
+    password = Column(String)
+
+Base.metadata.create_all(engine)
+
+def save_user_to_database(username: str, password: str) -> int:
+    # Yeni bir oturum oluştur
+    session = Session()
+
+    try:
+        # Kullanıcıyı oluştur ve veritabanına ekle
+        user = User(username=username, password=password)
+        session.add(user)
+        session.commit()
+
+        return user.id
+    except Exception as e:
+        # Hata durumunda geri alma işlemleri yapılabilir
+        print("Database Error:", e)
+        session.rollback()
+        return -1
+    finally:
+        # Oturumu kapat
+        session.close()
+
+def validate_user(username: str, password: str) -> bool:
+    # Yeni bir oturum oluştur
+    session = Session()
+
+    try:
+        # Kullanıcıyı veritabanında ara
+        user = session.query(User).filter_by(username=username, password=password).first()
+
+        if user:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print("Database Error:", e)
+        return False
+    finally:
+        session.close()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    # Erişim tokenını kullanarak mevcut kullanıcıyı doğrulayın
+    # Örneğin, JWT (JSON Web Token) kullanarak erişim tokenını doğrulayabilirsiniz
+    # Doğrulama işlemlerini gerçekleştirin ve kullanıcıyı döndürün
+    # Bu örnekte, basitçe kullanıcı adını token olarak kabul ediyoruz
+    user = User(username=token, password="")
+    return user
 
 
 class OutputData(BaseModel):
     data: List[dict]
+
+def is_user_subscribed(user: User) -> bool:
+    # Kullanıcının abone olup olmadığını kontrol etmek için gereken işlemleri burada gerçekleştirin
+    # Örneğin, kullanıcının abonelik durumunu bir veritabanı sorgusuyla kontrol edebilirsiniz
+    # Eğer kullanıcı abonelik durumuna sahipse True değerini döndürün, değilse False değerini döndürün
+
+    # Örnek bir kontrol:
+    # Burada kullanıcının abonelik durumunu kontrol eden bir sorgu yapılıyor
+    # Sizin veritabanı yapınıza ve gereksinimlerinize göre bu sorguyu uyarlamalısınız
+    session = Session()
+    try:
+        subscribed_user = session.query(User).filter_by(id=user.id, is_subscribed=True).first()
+
+        if subscribed_user:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print("Database Error:", e)
+        return False
+    finally:
+        session.close()
 
 
 app = FastAPI()
@@ -41,9 +136,45 @@ async def read_root(request: Request):
     # Render the HTML template
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.post("/register")
+async def register_user(request: Request):
+    form_data = await request.form()
+    username = form_data.get("username")
+    password = form_data.get("password")
+
+    if username and password:
+        user_id = save_user_to_database(username, password)
+        if user_id != -1:
+            return {"message": "User registered successfully!"}
+        else:
+            return {"message": "Failed to register user."}
+    else:
+        return {"message": "Invalid username or password."}
+
+@app.post("/login")
+def login(username: str, password: str):
+    # Kullanıcıyı veritabanında doğrulama işlemleri burada gerçekleştirilir
+    # Örneğin, kullanıcı adı ve parolanın doğru olup olmadığını kontrol edebilirsiniz
+    # Eğer doğruysa, kullanıcının oturumunu başlatın ve bir erişim tokenı döndürün
+    # Eğer yanlışsa, HTTPException kullanarak hata döndürün
+    if validate_user(username, password):
+        access_token = manager.create_access_token(username)
+        return {"access_token": access_token}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.get('/protected')
+def protected_route(user=Depends(manager.optional)):
+    if user is None:
+        return {"message": "User not found."}
+        # Do something ...
+    return {'user': user}
+
 
 @app.post("/", response_class=HTMLResponse)
-async def run_analysis_api(request: Request, file: UploadFile = File(...), target: str = Form(None), warning: bool = Form(True), return_stats: bool = Form(False), comp_ratio: float = Form(1.0)):
+async def run_analysis_api(request: Request, file: UploadFile = File(...), target: str = Form(None), warning: bool = Form(True), return_stats: bool = Form(False), comp_ratio: float = Form(1.0), current_user: User = Depends(get_current_user)):
+    if not is_user_subscribed(current_user):
+        raise HTTPException(status_code=403, detail="Not subscribed")
     df = pd.read_csv(file.file)
 
     sonuc = analysis(df, target=target, warning=warning, return_stats=return_stats) if target else analysis(df, target=None, warning=warning, return_stats=return_stats)
@@ -88,28 +219,6 @@ async def run_process(request: Request):
 
     # Render the HTML template
     return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
-
-
-kullanici_bilgileri = {}
-@app.get("/subscribe")
-async def subscribe():
-    # Burada abone olma işlemleri gerçekleştirilebilir
-    return RedirectResponse(url="http://127.0.0.1:5050/account")
-
-@app.get("/login")
-async def login(email: str, password: str):
-    # Burada giriş yapma işlemleri gerçekleştirilebilir
-    if email in kullanici_bilgileri and kullanici_bilgileri[email] == password:
-        return RedirectResponse(url="http://127.0.0.1:5050/account")
-    else:
-        return "Hatalı e-posta veya şifre"
-
-@app.get("/register")
-async def register(name: str, surname: str, email: str, password: str):
-    # Burada kayıt işlemleri gerçekleştirilebilir
-    kullanici_bilgileri[email] = password
-    return RedirectResponse(url="http://127.0.0.1:5050/account")
-
 
 
 
