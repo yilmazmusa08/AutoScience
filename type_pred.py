@@ -257,7 +257,10 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
         nan_ratio_list = []  # NaN oranları listesi oluşturuluyor
         warning_list = []  # warning listesi oluşturuluyor
         corr_deneme = []  # kolonlar arası dusuk korelasyonu bulmak için
-    
+
+        problem_type = None  # problem_type değişkeni başlangıçta atanmamış olarak başlatılıyor
+        metrics = None  # metrics değişkeni başlangıçta atanmamış olarak başlatılıyor
+        
         # Eğer veri setindeki sütun sayısı 5'ten büyükse ve hedef değişkenin veri tipi int64 veya float64 ise ve benzersiz değer sayısı 20'den büyükse problem_type değişkenine 'scoring' atanır
         if len(df.columns) > 5 and df[target].dtype in ['int64', 'float64'] and df[target].nunique() > 20:
             problem_type = 'scoring'
@@ -292,13 +295,16 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
                 # problem_type değişkenine 'time series' atanır.
                 problem_type = 'time series'
                 metrics = ['mae', 'mse', 'rmse']
-            # veri setindeki sütun sayısı 5'ten küçük ve integer veri tipine sahip sadece 2 sütun varsa veya herhangi bir sütunun adında 'id', 'ID', 'Id', 'iD>', 'ıd' kelimesi geçiyorsa:
+
             elif len(df.columns) < 5 and len([col for col in df.columns if isinstance(df[col], "int")]) == 2 or any(re.search(r'(id|ID|Id|iD>|ıd)', col) for col in df.columns):
                 # problem_type değişkenine 'recommendation' atanır.
                 problem_type = 'recommendation'
                 metrics = ['recall_score', 'precision_score', 'map_score']
-        # problem_type sözlük olarak {'problem_type': problem_type, 'metrics': metrics} şeklinde atanır.
-        problem_type = {'problem_type': problem_type, 'metrics': metrics}
+
+        # problem_type değişkeni atanmışsa problem_type sözlük olarak {'problem_type': problem_type, 'metrics': metrics} şeklinde atanır.
+        if problem_type is not None:
+            problem_type = {'problem_type': problem_type, 'metrics': metrics}
+
 
 # target aktif olduğu zaman -- Bu kod bloğu, NaN, sparse ve unique değerleri kontrol eder ve sayısal sütunlar arasındaki yüksek korelasyonu kontrol eder.Eğer warning TRue olursa warning kolonları siler
 # =======================================================================================================================================================================================================
@@ -431,8 +437,6 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
             elif df[col].dtype != 'object':
                 df[col].fillna(df[col].mean(), inplace=True)
 
-
-
         X = df.select_dtypes(include=['float', 'int'])
         if target in X.columns:
             X.drop(target, axis=1, inplace=True)
@@ -445,21 +449,23 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
                 y = df[target]
 
         feature_names = X.columns
-        rf = RandomForestClassifier(n_jobs=-1, n_estimators=500, oob_score=True, max_depth=5)
 
-        feat_selector = BorutaPy(rf, n_estimators='auto', verbose=0, random_state=42)
-        feat_selector.fit(X.values, y.values)
-        importance = feat_selector.ranking_
+        if len(feature_names) > 2:  # Yeni koşul
+            rf = RandomForestClassifier(n_jobs=-1, n_estimators=500, oob_score=True, max_depth=5)
 
-        feature_names = X.columns
-        feature_importance = {}
-        total_importance = 0
-        for i in range(len(feature_names)):
-            feature_importance[feature_names[i]] = importance[i]
-            total_importance += importance[i]
+            feat_selector = BorutaPy(rf, n_estimators='auto', verbose=0, random_state=42)
+            feat_selector.fit(X.values, y.values)
+            importance = feat_selector.ranking_
 
-        for feature in feature_importance:
-            feature_importance[feature] = round((feature_importance[feature] / total_importance) * 100, 2)
+            feature_importance = {}
+            total_importance = 0
+            for i in range(len(feature_names)):
+                feature_importance[feature_names[i]] = importance[i]
+                total_importance += importance[i]
+
+            for feature in feature_importance:
+                feature_importance[feature] = round((feature_importance[feature] / total_importance) * 100, 2)
+
 
 # Warning hesaplaması target aktif olmadığı zaman ve warning None olduğu zaman. Tek değişiklik(if warning is None:)
 # ==================================================================================================================
@@ -746,9 +752,11 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
 
                 return result
 
+        feature_importance = {}  # Boş bir sözlük olarak tanımlanıyor
         if warning:
             if target:
-                df = df.drop(warning_list, axis=1)
+                columns_to_drop = [col for col in warning_list if col in df.columns]
+                df = df.drop(columns_to_drop, axis=1)
                 
                 df_head = df.head(1)
                 df_head = df_head.to_json(orient="records")
@@ -758,11 +766,16 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
                     "Warning": nan_ratio_list,
                     "distributions": result_dict,
                     "high_corr_target": high_corr_target,
-                    "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                    "problem_type": problem_type,
-                    "df_head": df_head
                 }
+                
+                if len(feature_importance) > 2:  # Yeni koşul
+                    result["feature_importance"] = {k: f"{v}%" for k, v in feature_importance.items()}
+                
+                result["problem_type"] = problem_type
+                result["df_head"] = df_head
+                
                 return result
+
 
             else:
                 result = {
@@ -792,7 +805,7 @@ def calculate_pca(df, comp_ratio=1.0, target=None):
     pca.fit(df[numeric_cols])
     explained_var_ratio = pca.explained_variance_ratio_
     cumsum_var_ratio = np.cumsum(explained_var_ratio)
-    n_components = np.searchsorted(cumsum_var_ratio, comp_ratio) + 1
+    n_components = len(cumsum_var_ratio)  # n_components doğrudan cumsum_var_ratio'nun uzunluğu olarak ayarlanıyor
     pca = PCA(n_components=n_components)
     pca.fit(df[numeric_cols])
     explained_var_ratio = pca.explained_variance_ratio_
@@ -802,6 +815,7 @@ def calculate_pca(df, comp_ratio=1.0, target=None):
     result_dict['Principal Component'] = list(
         range(1, len(explained_var_ratio)+1))
     return result_dict
+
 
 
 def set_to_list(data):
