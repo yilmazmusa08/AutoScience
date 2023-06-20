@@ -2,123 +2,37 @@ import os
 import json
 import uvicorn
 import warnings
+import numpy as np
 import pandas as pd
 from typing import List
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, APIRouter
+from typing import List, Dict
 from pydantic import BaseModel
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, Body
 from type_pred import *
+
+import sys
+
+# models klasörünün tam yolu
+models_path = '/home/firengiz/Belgeler/proje/automl/models'
+
+# models_path'i sys.path listesine ekle
+sys.path.append(models_path)
+from init import *
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.decomposition import PCA
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from fastapi import HTTPException
-from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_login.exceptions import InvalidCredentialsException
-from fastapi_login import LoginManager
-
-SECRET = "super-secret-key"
-manager = LoginManager(
-    SECRET, '/login',
-    use_cookie=True
-)
-
-engine = create_engine('sqlite:///database.db', echo=True)
-Base = declarative_base()
-Session = sessionmaker(bind=engine)
-
-class User(Base):
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True)
-    username = Column(String)
-    password = Column(String)
-
-Base.metadata.create_all(engine)
-
-def save_user_to_database(username: str, password: str) -> int:
-    # Yeni bir oturum oluştur
-    session = Session()
-
-    try:
-        # Kullanıcıyı oluştur ve veritabanına ekle
-        user = User(username=username, password=password)
-        session.add(user)
-        session.commit()
-
-        return user.id
-    except Exception as e:
-        # Hata durumunda geri alma işlemleri yapılabilir
-        print("Database Error:", e)
-        session.rollback()
-        return -1
-    finally:
-        # Oturumu kapat
-        session.close()
-
-def validate_user(username: str, password: str) -> bool:
-    # Yeni bir oturum oluştur
-    session = Session()
-
-    try:
-        # Kullanıcıyı veritabanında ara
-        user = session.query(User).filter_by(username=username, password=password).first()
-
-        if user:
-            return True
-        else:
-            return False
-    except Exception as e:
-        print("Database Error:", e)
-        return False
-    finally:
-        session.close()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    # Erişim tokenını kullanarak mevcut kullanıcıyı doğrulayın
-    # Örneğin, JWT (JSON Web Token) kullanarak erişim tokenını doğrulayabilirsiniz
-    # Doğrulama işlemlerini gerçekleştirin ve kullanıcıyı döndürün
-    # Bu örnekte, basitçe kullanıcı adını token olarak kabul ediyoruz
-    user = User(username=token, password="")
-    return user
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 
 
 class OutputData(BaseModel):
     data: List[dict]
-
-def is_user_subscribed(user: User) -> bool:
-    # Kullanıcının abone olup olmadığını kontrol etmek için gereken işlemleri burada gerçekleştirin
-    # Örneğin, kullanıcının abonelik durumunu bir veritabanı sorgusuyla kontrol edebilirsiniz
-    # Eğer kullanıcı abonelik durumuna sahipse True değerini döndürün, değilse False değerini döndürün
-
-    # Örnek bir kontrol:
-    # Burada kullanıcının abonelik durumunu kontrol eden bir sorgu yapılıyor
-    # Sizin veritabanı yapınıza ve gereksinimlerinize göre bu sorguyu uyarlamalısınız
-    session = Session()
-    try:
-        subscribed_user = session.query(User).filter_by(id=user.id, is_subscribed=True).first()
-
-        if subscribed_user:
-            return True
-        else:
-            return False
-    except Exception as e:
-        print("Database Error:", e)
-        return False
-    finally:
-        session.close()
 
 
 app = FastAPI()
@@ -136,90 +50,103 @@ async def read_root(request: Request):
     # Render the HTML template
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/register")
-async def register_user(request: Request):
-    form_data = await request.form()
-    username = form_data.get("username")
-    password = form_data.get("password")
 
-    if username and password:
-        user_id = save_user_to_database(username, password)
-        if user_id != -1:
-            return {"message": "User registered successfully!"}
-        else:
-            return {"message": "Failed to register user."}
-    else:
-        return {"message": "Invalid username or password."}
+import traceback
 
-@app.post("/login")
-def login(username: str, password: str):
-    # Kullanıcıyı veritabanında doğrulama işlemleri burada gerçekleştirilir
-    # Örneğin, kullanıcı adı ve parolanın doğru olup olmadığını kontrol edebilirsiniz
-    # Eğer doğruysa, kullanıcının oturumunu başlatın ve bir erişim tokenı döndürün
-    # Eğer yanlışsa, HTTPException kullanarak hata döndürün
-    if validate_user(username, password):
-        access_token = manager.create_access_token(username)
-        return {"access_token": access_token}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@app.get('/protected')
-def protected_route(user=Depends(manager.optional)):
-    if user is None:
-        return {"message": "User not found."}
-        # Do something ...
-    return {'user': user}
+@app.post('/', response_class=HTMLResponse)
+async def run_model_api(request: Request, file: UploadFile = File(...), target: str = Form(None), date: str = Form(None)):
+    df = pd.read_csv(file.file)
+    sonuc2 = create_model(df, date=date, target=target)
+    sonuc2 = set_to_list(sonuc2)
+
+    output_file2 = os.path.join(os.getcwd(), "output2.json")
+    with open(output_file2, "w") as f:
+        json.dump(sonuc2, f)
+
+    # '/process' endpointine yönlendirme yap
+    return RedirectResponse(url="/process", status_code=302)
+
+
+
+@app.get("/process", response_class=HTMLResponse)
+async def run_process_model(request: Request):
+    try:
+        with open("output1.json", "r") as f1, open("output2.json", "r") as f2:
+            output_dict2 = json.load(f1)
+
+        # Render the HTML template
+        return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict2)})
+    except:
+        return "Dataset kabul edilmedi, bir hata oluştu."
 
 
 @app.post("/", response_class=HTMLResponse)
-async def run_analysis_api(request: Request, file: UploadFile = File(...), target: str = Form(None), warning: bool = Form(True), return_stats: bool = Form(False), comp_ratio: float = Form(1.0), current_user: User = Depends(get_current_user)):
-    if not is_user_subscribed(current_user):
-        raise HTTPException(status_code=403, detail="Not subscribed")
-    df = pd.read_csv(file.file)
+async def run_analysis_api(request: Request, file: UploadFile = File(...), target: str = Form(None), warning: bool = Form(True), return_stats: bool = Form(False), comp_ratio: float = Form(1.0)):
+    try:
+        df = pd.read_csv(file.file)
 
-    sonuc = analysis(df, target=target, warning=warning, return_stats=return_stats) if target else analysis(df, target=None, warning=warning, return_stats=return_stats)
+        sonuc = analysis(df, target=target, warning=warning, return_stats=return_stats) if target else analysis(df, target=None, warning=warning, return_stats=return_stats)
 
-    pca_dict = {}
-    for col in sonuc['Role']:
+        pca_dict = {}
+        for col in sonuc['Role']:
+            null_counts = df.isnull().sum()
+            empty_cols = null_counts[null_counts >= len(df) * 0.6].index
+            df.drop(empty_cols, axis=1, inplace=True)
 
-        null_counts = df.isnull().sum()
-        empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-        df.drop(empty_cols, axis=1, inplace=True)
+            for col in df.columns:
+                if df[col].dtype == 'object' and df[col].nunique() < 20:
+                    df[col].fillna(df[col].mode()[0], inplace=True)
+                    le = LabelEncoder()
+                    df[col] = le.fit_transform(df[col])
+                elif df[col].dtype != 'object':
+                    df[col].fillna(df[col].mean(), inplace=True)
 
-        for col in df.columns:
-            if df[col].dtype == 'object' and df[col].nunique() < 20:
-                df[col].fillna(df[col].mode()[0], inplace=True)
-                le = LabelEncoder()
-                df[col] = le.fit_transform(df[col])
-            elif df[col].dtype != 'object':
-                df[col].fillna(df[col].mean(), inplace=True)
+            df[col] = df[col].fillna(df[col].mean())
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']), comp_ratio=comp_ratio)
+            pca_dict = {
+                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                'Principal Component': result_dict['Principal Component']
+            }
 
-        df[col] = df[col].fillna(df[col].mean())
-        result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']), comp_ratio=comp_ratio)
-        pca_dict = {
-            'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
-            'Principal Component': result_dict['Principal Component']
-        }
+        sonuc['PCA'] = pca_dict
+        sonuc = set_to_list(sonuc)
+        output_file = os.path.join(os.getcwd(), "output.json")
 
-    sonuc['PCA'] = pca_dict
-    sonuc = set_to_list(sonuc)
-    output_file = os.path.join(os.getcwd(), "output.json")
+        with open(output_file, "w") as f:
+            json.dump(sonuc, f)
 
-    with open(output_file, "w") as f:
-        json.dump(sonuc, f)
-
-    # Redirect to the '/process' endpoint
-    return RedirectResponse(url="/process", status_code=302)
+        # Redirect to the '/process' endpoint
+        return RedirectResponse(url="/process", status_code=302)
+    except Exception as e:
+        traceback.print_exc()  # Hata mesajını terminale yazdır
+        return "Dataset kabul edilmedi, bir hata oluştu."
 
 
 @app.get("/process", response_class=HTMLResponse)
 async def run_process(request: Request):
-    with open("output.json", "r") as f:
-        output_dict = json.load(f)
+    try:
+        with open("output.json", "r") as f:
+            output_dict = json.load(f)
 
-    # Render the HTML template
-    return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
+        # Render the HTML template
+        return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
+    except:
+        return "Dataset kabul edilmedi, bir hata oluştu."
 
+
+"""@app.post("/model")
+async def process_csv(file: UploadFile = File(...), target: str = None):
+    # Yüklenen CSV dosyasını oku
+    df = pd.read_csv(file.file)
+
+    # Verileri ön işleme fonksiyonunu çağır
+    df = preprocess(df)
+
+    # Model oluşturma fonksiyonunu çağır
+    result = create_model(df, target=target)
+
+    return result"""
 
 
 @app.get("/")
