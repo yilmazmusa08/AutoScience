@@ -118,7 +118,6 @@ async def run_models(request: Request, file: UploadFile = File(...), date: str =
         sonuc = list(sonuc)
 
         output_file = os.path.join(os.getcwd(), "model.json")
-        print(output_file)
 
         with open(output_file, "w") as f:
             json.dump(sonuc, f)
