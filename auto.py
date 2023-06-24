@@ -15,7 +15,6 @@ pd.set_option('display.max_columns', None)
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
 from fastapi import FastAPI, Form, Request, Body
 from type_pred import *
-
 import sys
 
 # models klasörünün tam yolu
@@ -23,7 +22,7 @@ models_path = '/home/firengiz/Belgeler/proje/automl/models'
 
 # models_path'i sys.path listesine ekle
 sys.path.append(models_path)
-from init import *
+from init import create_model
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.decomposition import PCA
 from fastapi.templating import Jinja2Templates
@@ -52,33 +51,6 @@ async def read_root(request: Request):
 
 
 import traceback
-
-
-@app.post('/', response_class=HTMLResponse)
-async def run_model_api(request: Request, file: UploadFile = File(...), target: str = Form(None), date: str = Form(None)):
-    df = pd.read_csv(file.file)
-    sonuc2 = create_model(df, date=date, target=target)
-    sonuc2 = set_to_list(sonuc2)
-
-    output_file2 = os.path.join(os.getcwd(), "output2.json")
-    with open(output_file2, "w") as f:
-        json.dump(sonuc2, f)
-
-    # '/process' endpointine yönlendirme yap
-    return RedirectResponse(url="/process", status_code=302)
-
-
-
-@app.get("/process", response_class=HTMLResponse)
-async def run_process_model(request: Request):
-    try:
-        with open("output1.json", "r") as f1, open("output2.json", "r") as f2:
-            output_dict2 = json.load(f1)
-
-        # Render the HTML template
-        return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict2)})
-    except:
-        return "Dataset kabul edilmedi, bir hata oluştu."
 
 
 @app.post("/", response_class=HTMLResponse)
@@ -111,7 +83,7 @@ async def run_analysis_api(request: Request, file: UploadFile = File(...), targe
 
         sonuc['PCA'] = pca_dict
         sonuc = set_to_list(sonuc)
-        output_file = os.path.join(os.getcwd(), "output.json")
+        output_file = os.path.join(os.getcwd(), "analysis.json")
 
         with open(output_file, "w") as f:
             json.dump(sonuc, f)
@@ -126,13 +98,51 @@ async def run_analysis_api(request: Request, file: UploadFile = File(...), targe
 @app.get("/process", response_class=HTMLResponse)
 async def run_process(request: Request):
     try:
-        with open("output.json", "r") as f:
+        with open("analysis.json", "r") as f:
             output_dict = json.load(f)
 
         # Render the HTML template
         return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
     except:
-        return "Dataset kabul edilmedi, bir hata oluştu."
+        return "Dataset kabul edilmedi, bir hata oluştuu."
+
+
+@app.post("/model", response_class=HTMLResponse)
+async def run_models(request: Request, file: UploadFile = File(...), date: str = Form(None), target: str = Form(None)):
+    try:
+        df = pd.read_csv(file.file)
+
+        sonuc = create_model(df, date=date, target=target) if date else create_model(df, date=None, target=target)
+        
+        # Sonucu liste olarak dönüştür
+        sonuc = list(sonuc)
+
+        output_file = os.path.join(os.getcwd(), "model.json")
+        print(output_file)
+
+        with open(output_file, "w") as f:
+            json.dump(sonuc, f)
+
+        # '/model' endpointine yönlendir
+        return RedirectResponse(url="/model", status_code=302)
+    except Exception as e:
+        traceback.print_exc()
+        return f"Dataset kabul edilmedi. Bir hata oluştu: {str(e)}"
+
+
+
+@app.get("/model", response_class=HTMLResponse)
+async def run_process2(request: Request):
+    try:
+        with open("model.json", "r") as f:
+            output_dict2 = json.load(f)
+
+        # HTML şablonunu renderle
+        return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict2)})
+    except Exception as e:
+        return f"Veri setini işlerken bir hata oluştu: {str(e)}"
+
+    
 
 
 """@app.post("/model")
@@ -186,6 +196,6 @@ def Description():
     """
     return Description
 
-uvicorn.run(app, host="127.0.0.1", port=5050)
+uvicorn.run(app, host="127.0.0.1", port=8000)
 
 # kodu durdurmakıcın bu kodu yaz: sudo lsof -i :8000    sudo kill 12345(buraya  durdurmak ıstedıgın  PID   numarasını yaz)
