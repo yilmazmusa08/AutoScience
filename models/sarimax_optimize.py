@@ -19,11 +19,16 @@ def plot_ts(train, test, y_pred, title):
     y_pred.plot(legend=True, label="PREDICTION")
     plt.show()
 
-def sarimax_optimize(df, date, target, forecast=60):
+def sarimax_optimize(df, date, target, forecast=None):
 
-    df = df.set_index(date, drop=True)
+    if date is not None:
+        df = df.set_index(date, drop=True)
+    else:
+        df = df.set_index(df.columns[0], drop=True)
+    
     df = df[target]
     print(df)
+    
     train = df[:-forecast] 
     test = df[-forecast:] 
 
@@ -59,6 +64,7 @@ def sarimax_optimize(df, date, target, forecast=60):
     y_pred = pd.Series(y_pred, index=test.index)
 
     plot_ts(train, test, y_pred, "SARIMA")
+
 
 
     ############################
