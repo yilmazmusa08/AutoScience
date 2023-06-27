@@ -240,16 +240,16 @@ async def run_analysis_api(
     with open("analysis.json", "w") as f:
         json.dump(output_dict, f)
 
-    # Render the HTML template
-    return templates.TemplateResponse("index.html", {"request": request})
+    # Redirect to the result page
+    return RedirectResponse(url="/result", status_code=302)
 
-@app.get("/analysis", response_class=HTMLResponse)
-async def run_process(request: Request):
+@app.get("/result", response_class=HTMLResponse)
+async def show_result(request: Request):
     try:
         with open("analysis.json", "r") as f:
             output_dict = json.load(f)
 
-        # HTML şablonunu renderle
+        # Render the HTML template
         return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
     except Exception as e:
         return f"Error: {str(e)}"
