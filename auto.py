@@ -266,13 +266,13 @@ async def run_analysis_api(
                 'Principal Component': result_dict['Principal Component']
             }
 
-        sonuc['PCA'] = pca_dict
-        sonuc = set_to_list(sonuc)
-        output_dict = {"result": sonuc}
+        output['PCA'] = pca_dict
+        output = set_to_list(output)
+        output_analysis = {"result": output}
 
         # After analysis, store the output in a JSON file (output.json in this example)
         with open("analysis.json", "w") as f:
-            json.dump(output_dict, f)
+            json.dump(output_analysis, f)
 
         # Redirect to the result page
         return RedirectResponse(url="/result_analysis", status_code=302)
@@ -286,10 +286,10 @@ async def run_analysis_api(
 async def show_result(request: Request):
     try:
         with open("analysis.json", "r") as f:
-            output_dict = json.load(f)
+            output_analysis = json.load(f)
 
         # Render the HTML template
-        return templates.TemplateResponse("analysis.html", {"request": request, "result": json.dumps(output_dict)})
+        return templates.TemplateResponse("analysis.html", {"request": request, "result": json.dumps(output_analysis)})
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -298,7 +298,6 @@ async def show_result(request: Request):
 async def run_models(
     request: Request,
     file: UploadFile = File(...),
-    date: str = Form(None),
     target: str = Form(None),
     current_user: User = Depends(get_current_user)
 ):
@@ -307,21 +306,15 @@ async def run_models(
     try:
         df = pd.read_csv(file.file)
 
-        if date:
-            sonuc = create_model(df, date=date, target=target)
-        else:
-            sonuc = create_model(df, date=None, target=target)
-
-        # Convert the result to a list
-        sonuc = list(sonuc)
+        output = create_model(df, target=target)
 
         output_file = os.path.join(os.getcwd(), "model.json")
 
         with open(output_file, "w") as f:
-            json.dump(sonuc, f)
+            json.dump(output, f)
 
         # Redirect to the '/model' endpoint
-        return RedirectResponse(url="/model", status_code=302)
+        return RedirectResponse(url="/result_model", status_code=302)
     
     except Exception as e:
         traceback.print_exc()
@@ -332,10 +325,10 @@ async def run_models(
 async def show_result(request: Request):
     try:
         with open("model.json", "r") as f:
-            output_dict = json.load(f)
-
+            output_model = json.load(f)
+            
         # Render the HTML template
-        return templates.TemplateResponse("model.html", {"request": request, "result": json.dumps(output_dict)})
+        return templates.TemplateResponse("model.html", {"request": request, "result": json.dumps(output_model)})
     except Exception as e:
         return f"Error: {str(e)}"
 
