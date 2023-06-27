@@ -156,13 +156,17 @@ def login(request: Request, data: OAuth2PasswordRequestForm = Depends(), db: Ses
     print("Generated access token:", token)  # Print the generated access token
 
     print("Login successful for user:", email)
-    # Set the access token as a cookie and redirect to the homepage
-    response = RedirectResponse(url="/process", status_code=302)
-    response.set_cookie(key="access_token", value=token, httponly=True, max_age=3600)
-    return templates.TemplateResponse("index.html", {"request": request, "message": "Login successful"})
+    # Set the access token as a cookie
+    response = templates.TemplateResponse("index.html", {"request": request, "message": "Login successful"})
+    response.set_cookie(key="token", value=token, httponly=True, max_age=3600)
 
-async def get_current_user(request: Request, token: str = Cookie(None), db: SessionLocal = Depends(get_db)):
-    print("Access token:", token)  # Access token'ı kontrol etmek için
+    return response
+
+
+async def get_current_user(request: Request, db: SessionLocal = Depends(get_db)):
+    token = request.cookies.get("token")  # Çerezi (tokeni) al
+    print("token :", token)
+
     if not token:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -201,12 +205,7 @@ async def run_analysis_api(
     comp_ratio: float = Form(1.0),
     current_user: User = Depends(get_current_user)
 ):
-    # Check if the user is subscribed
-    if not is_user_subscribed(current_user):
-        print("Access token found:", current_user.email)
-        raise HTTPException(status_code=403, detail="Not subscribed")
-    else:
-        print("Login Status : ", is_user_subscribed(current_user))
+    print("Access token found:", current_user.email)
 
     df = pd.read_csv(file.file)
 
