@@ -29,30 +29,33 @@ def multiclass_classification(df, cv=5, target=None, metrics=['accuracy', 'preci
     # Logistic Regression Model
     lr_model = LogisticRegression()
     lr_scores = cross_validate(lr_model, X, y, cv=cv, scoring=metrics)
-    lr_scores_mean = {metric: np.mean(lr_scores[f'test_{metric}']) for metric in metrics}
-    results['Logistic Regression'] = lr_scores_mean
+    results['Logistic Regression'] = {metric: np.mean(lr_scores[f'test_{metric}']) for metric in metrics}
+    models.append(lr_model)
 
     # Random Forest Model
     rf_model = RandomForestClassifier()
     rf_scores = cross_validate(rf_model, X, y, cv=cv, scoring=metrics)
-    rf_scores_mean = {metric: np.mean(rf_scores[f'test_{metric}']) for metric in metrics}
-    results['Random Forest'] = rf_scores_mean
+    results['Random Forest'] = {metric: np.mean(rf_scores[f'test_{metric}']) for metric in metrics}
+    models.append(rf_model)
 
     # Extra Model 1: Decision Tree Classifier
     dt_model = DecisionTreeClassifier()
     dt_scores = cross_validate(dt_model, X, y, cv=cv, scoring=metrics)
-    dt_scores_mean = {metric: np.mean(dt_scores[f'test_{metric}']) for metric in metrics}
-    results['Decision Tree Classifier'] = dt_scores_mean
+    results['Decision Tree Classifier'] = {metric: np.mean(dt_scores[f'test_{metric}']) for metric in metrics}
+    models.append(dt_model)
 
     # Extra Model 2: Gradient Boosting Classifier
     gb_model = GradientBoostingClassifier()
     gb_scores = cross_validate(gb_model, X, y, cv=cv, scoring=metrics)
-    gb_scores_mean = {metric: np.mean(gb_scores[f'test_{metric}']) for metric in metrics}
-    results['Gradient Boosting Classifier'] = gb_scores_mean
+    results['Gradient Boosting Classifier'] = {metric: np.mean(gb_scores[f'test_{metric}']) for metric in metrics}
+    models.append(gb_model)
 
+    model_names = ['Logistic Regression', 'Random Forest',
+                'Decision Tree Classifier', 'Gradient Boosting Classifier']
 
-    best_model = max(results, key=lambda x: np.mean(list(results[x].values())))
-    best_metrics = [round(results[best_model][metric], 2) for metric in metrics]
+    best_model_index = np.argmax([results[model]['accuracy'] for model in results])
+    best_model = models[best_model_index]
+    best_accuracy = results[model_names[best_model_index]]['accuracy']
 
-
-    return 'Best Modell', best_model, 'Accuracyy',best_metrics
+    results = {"Results" : results}
+    return results

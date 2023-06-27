@@ -104,7 +104,7 @@ def create_model(df, date=None, target=None):
         "cv": 5,
         "target": target,
         "models": ["Linear Regression", "Random Forest", "Decision Tree Regressor", "Gradient Boosting Regressor"],
-        "metrics": ["neg_mean_squared_error", "neg_mean_absolute_error", "r2"]
+        "metrics": ["neg_mean_squared_error", "neg_mean_absolute_error", "neg_mean_absolute_percentage_error", "r2"]
     }
 
     dbscan_params = {
@@ -118,7 +118,6 @@ def create_model(df, date=None, target=None):
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col])
         numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
-        print(numeric_columns)
         for col in numeric_columns:
             if df[col].isnull().sum() / len(df) > 0.5:
                 df.drop(col, axis=1, inplace=True)

@@ -14,7 +14,7 @@ import seaborn as sns
 import warnings 
 warnings.filterwarnings("ignore")
 # import statsmodels.stats.api as sms
-from scipy.stats import ttest_1samp, shapiro, levene, ttest_ind, mannwhitneyu,     pearsonr, spearmanr, kendalltau, f_oneway, kruskal
+from scipy.stats import shapiro, levene, ttest_ind
 # from statsmodels.stats.proportion import proportions_ztest
 # from skompiler import skompile
 # import graphviz
@@ -164,7 +164,8 @@ def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
 
     for o in obj:
         if pd.notna(row[o]):
-            query.append(f"({o} == '{row[o]}')")
+            value = str(row[o]).replace("'", "").replace('"', "")  # Escape single and double quotes
+            query.append(f"({o} == '{value}')")
     
     for n in num:
         if pd.notna(row[n]):

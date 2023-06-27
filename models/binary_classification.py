@@ -50,10 +50,7 @@ def binary_classification(df, cv=5, target=None, models=['Logistic Regression', 
     gb_scores = cross_validate(gb_model, X, y, cv=cv, scoring=metrics)
     gb_scores_mean = {metric: np.mean(gb_scores[f'test_{metric}']) for metric in metrics}
     results['Gradient Boosting Classifier'] = gb_scores_mean
-
-    best_model = max(results, key=lambda x: np.mean(list(results[x].values())))
-    best_metrics = [round(results[best_model][metric], 2) for metric in metrics]
-
-
-    return 'Best Modell', best_model, 'Accuracyy',best_metrics
+    
+    results = {"Results" : results}
+    return results
 

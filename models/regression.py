@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Forest',
-                'Decision Tree Regressor', 'Gradient Boosting Regressor'], metrics=['neg_mean_squared_error','neg_mean_absolute_error', 'r2']):
+                'Decision Tree Regressor', 'Gradient Boosting Regressor'], metrics=['neg_mean_squared_error','neg_mean_absolute_error', 'neg_mean_absolute_percentage_error' 'r2']):
 
     try:
         for col in df.columns:
@@ -50,8 +50,5 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
     gb_scores_mean = {metric: np.mean(gb_scores[f'test_{metric}']) for metric in metrics}
     results['Gradient Boosting Regressor'] = gb_scores_mean
 
-    best_model = min(results, key=lambda x: np.mean(list(results[x].values())))
-
-    best_metrics = {metric: round(-score, 2) for metric, score in results[best_model].items()}
-
-    return {'Best Model': best_model, 'Metrics': best_metrics}
+    results = {"Results" : results}
+    return results
