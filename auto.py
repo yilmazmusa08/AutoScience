@@ -237,11 +237,22 @@ async def run_analysis_api(
     output_dict = {"result": sonuc}
 
     # After analysis, store the output in a JSON file (output.json in this example)
-    with open("output.json", "w") as f:
+    with open("analysis.json", "w") as f:
         json.dump(output_dict, f)
 
     # Render the HTML template
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/analysis", response_class=HTMLResponse)
+async def run_process(request: Request):
+    try:
+        with open("analysis.json", "r") as f:
+            output_dict = json.load(f)
+
+        # HTML şablonunu renderle
+        return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 

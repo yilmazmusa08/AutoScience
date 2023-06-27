@@ -323,9 +323,6 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
         else:
             pass
 
-
-
-
         for col in df.columns: # Veri setindeki her kolon için:
             if df[col].dtype == "int64" or df[col].dtype == "float64":# Eğer kolon sayısal ise:
                 null_values = df[col].isna().sum() # NaN değerlerinin sayısı hesaplanıyor
