@@ -1,14 +1,12 @@
 import os
+import sys
 import json
 import uvicorn
 import warnings
+import traceback
 import pandas as pd
 from fastapi import FastAPI, File, UploadFile
 from sklearn.exceptions import ConvergenceWarning
-warnings.filterwarnings('ignore')
-pd.set_option('display.max_rows', 50)
-pd.set_option('display.max_columns', None)
-warnings.filterwarnings('ignore', category=ConvergenceWarning)
 from fastapi import FastAPI, Form, Request, Cookie
 from type_pred import *
 from sklearn.exceptions import ConvergenceWarning
@@ -23,6 +21,14 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from jose import JWTError, jwt
+warnings.filterwarnings('ignore')
+pd.set_option('display.max_rows', 50)
+pd.set_option('display.max_columns', None)
+warnings.filterwarnings('ignore', category=ConvergenceWarning)
+
+path = "./models"
+sys.path.append(path)
+from init import create_model
 
 app = FastAPI()
 
@@ -139,6 +145,7 @@ def requires_login(function):
 
     return wrapper
 
+
 @app.post("/login")
 def login(request: Request, data: OAuth2PasswordRequestForm = Depends(), db: SessionLocal = Depends(get_db)):
     email = data.username
@@ -185,17 +192,42 @@ async def get_current_user(request: Request, db: SessionLocal = Depends(get_db))
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-def is_user_subscribed(user: User):
-    # Kullanıcının abone olup olmadığını kontrol eden bir işlev tanımlayın.
-    # Abone ise True, değilse False döndürün.
+@app.get("/index", response_class=HTMLResponse)
+def index(request: Request):
+    token = request.cookies.get("token")  # Çerezi (tokeni) al
+    if token:
+        return templates.TemplateResponse("index.html", {"request": request, "token": token})
+    else:
+        return RedirectResponse(url="/", status_code=302)
 
-    # Örnek bir abonelik kontrolü:
+
+@app.get("/analysis", response_class=HTMLResponse)
+def analyze(request: Request):
+    token = request.cookies.get("token")  # Çerezi (tokeni) al
+    if token:
+        return templates.TemplateResponse("analysis.html", {"request": request, "token": token})
+    else:
+        return RedirectResponse(url="/", status_code=302)
+
+
+@app.get("/model", response_class=HTMLResponse)
+def model(request: Request):
+    token = request.cookies.get("token")  # Çerezi (tokeni) al
+    if token:
+        return templates.TemplateResponse("model.html", {"request": request, "token": token})
+    else:
+        return RedirectResponse(url="/", status_code=302)
+
+
+def check_status(user: User):
+
     if user.subscription_status == "active":
         return True
     else:
         return False
-    
-@app.post("/", response_class=HTMLResponse)
+
+
+@app.post("/analysis", response_class=HTMLResponse)
 async def run_analysis_api(
     request: Request,
     file: UploadFile = File(...),
@@ -207,53 +239,105 @@ async def run_analysis_api(
 ):
     print("Access token found:", current_user.email)
 
-    df = pd.read_csv(file.file)
+    try:
+        df = pd.read_csv(file.file)
+        print(df)
 
-    sonuc = analysis(df, target=target, warning=warning, return_stats=return_stats)
+        sonuc = analysis(df=df, target=target, warning=warning, return_stats=return_stats)
 
-    pca_dict = {}
-    for col in sonuc['Role']:
-        null_counts = df.isnull().sum()
-        empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-        df.drop(empty_cols, axis=1, inplace=True)
+        pca_dict = {}
+        for col in sonuc['Role']:
+            null_counts = df.isnull().sum()
+            empty_cols = null_counts[null_counts >= len(df) * 0.6].index
+            df.drop(empty_cols, axis=1, inplace=True)
 
-        for col in df.columns:
-            if df[col].dtype == 'object' and df[col].nunique() < 20:
-                df[col].fillna(df[col].mode()[0], inplace=True)
-                le = LabelEncoder()
-                df[col] = le.fit_transform(df[col])
-            elif df[col].dtype != 'object':
-                df[col].fillna(df[col].mean(), inplace=True)
+            for col in df.columns:
+                if df[col].dtype == 'object' and df[col].nunique() < 20:
+                    df[col].fillna(df[col].mode()[0], inplace=True)
+                    le = LabelEncoder()
+                    df[col] = le.fit_transform(df[col])
+                elif df[col].dtype != 'object':
+                    df[col].fillna(df[col].mean(), inplace=True)
 
-        df[col] = df[col].fillna(df[col].mean())
-        result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']), comp_ratio=comp_ratio)
-        pca_dict = {
-            'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
-            'Principal Component': result_dict['Principal Component']
-        }
+            df[col] = df[col].fillna(df[col].mean())
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']), comp_ratio=comp_ratio)
+            pca_dict = {
+                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                'Principal Component': result_dict['Principal Component']
+            }
 
-    sonuc['PCA'] = pca_dict
-    sonuc = set_to_list(sonuc)
-    output_dict = {"result": sonuc}
+        sonuc['PCA'] = pca_dict
+        sonuc = set_to_list(sonuc)
+        output_dict = {"result": sonuc}
 
-    # After analysis, store the output in a JSON file (output.json in this example)
-    with open("analysis.json", "w") as f:
-        json.dump(output_dict, f)
+        # After analysis, store the output in a JSON file (output.json in this example)
+        with open("analysis.json", "w") as f:
+            json.dump(output_dict, f)
 
-    # Redirect to the result page
-    return RedirectResponse(url="/result", status_code=302)
+        # Redirect to the result page
+        return RedirectResponse(url="/result_analysis", status_code=302)
+    
+    except Exception as e:
+        traceback.print_exc()
+        return f"Dataset is not excepted, an error occurred : {str(e)}"
 
-@app.get("/result", response_class=HTMLResponse)
+
+@app.get("/result_analysis", response_class=HTMLResponse)
 async def show_result(request: Request):
     try:
         with open("analysis.json", "r") as f:
             output_dict = json.load(f)
 
         # Render the HTML template
-        return templates.TemplateResponse("index.html", {"request": request, "result": json.dumps(output_dict)})
+        return templates.TemplateResponse("analysis.html", {"request": request, "result": json.dumps(output_dict)})
     except Exception as e:
         return f"Error: {str(e)}"
 
+
+@app.post("/model", response_class=HTMLResponse)
+async def run_models(
+    request: Request,
+    file: UploadFile = File(...),
+    date: str = Form(None),
+    target: str = Form(None),
+    current_user: User = Depends(get_current_user)
+):
+    print("Access token found:", current_user.email)
+
+    try:
+        df = pd.read_csv(file.file)
+
+        if date:
+            sonuc = create_model(df, date=date, target=target)
+        else:
+            sonuc = create_model(df, date=None, target=target)
+
+        # Convert the result to a list
+        sonuc = list(sonuc)
+
+        output_file = os.path.join(os.getcwd(), "model.json")
+
+        with open(output_file, "w") as f:
+            json.dump(sonuc, f)
+
+        # Redirect to the '/model' endpoint
+        return RedirectResponse(url="/model", status_code=302)
+    
+    except Exception as e:
+        traceback.print_exc()
+        return f"Dataset is not excepted, an error occurred : {str(e)}"
+    
+    
+@app.get("/result_model", response_class=HTMLResponse)
+async def show_result(request: Request):
+    try:
+        with open("model.json", "r") as f:
+            output_dict = json.load(f)
+
+        # Render the HTML template
+        return templates.TemplateResponse("model.html", {"request": request, "result": json.dumps(output_dict)})
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 uvicorn.run(app, host="127.0.0.1", port=5050)
