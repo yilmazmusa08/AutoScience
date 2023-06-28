@@ -31,13 +31,12 @@ def is_stationary(y):
         print(F"Result: Non-Stationary (H0: non-stationary, p-value: {round(p_value, 3)})")
         return False
 
-def smoothing(df, date, target, forecast=60, method="add", seasonal_periods=12):
-    if date is not None:
-        df = df.set_index(date, drop=True)
-    else:
-        df = df.set_index(df.columns[0], drop=True)
-    train = df[:-forecast]
-    test = df[-forecast:]
+def smoothing(df, target, forecast=60, method="add", seasonal_periods=12):
+
+    df = df[target]
+    print(df)
+    train = df[:-forecast] 
+    test = df[-forecast:] 
 
     alphas = betas = gammas = np.arange(0.20, 1, 0.10)
 
@@ -71,6 +70,9 @@ def smoothing(df, date, target, forecast=60, method="add", seasonal_periods=12):
     y_pred = final_tes_model.forecast(forecast)
 
     plot_ts(train, test, y_pred, "Triple Exponential Smoothing")
-    
-    return y_pred
 
+    output = {}
+    for i in range(forecast):
+        output[str(i+1) + ". day's forecast"] = y_pred.iloc[i]
+    
+    return output

@@ -19,16 +19,10 @@ def plot_ts(train, test, y_pred, title):
     y_pred.plot(legend=True, label="PREDICTION")
     plt.show()
 
-def sarimax_optimize(df, date, target, forecast=None):
+def sarimax_optimize(df, target, forecast=60):
 
-    if date is not None:
-        df = df.set_index(date, drop=True)
-    else:
-        df = df.set_index(df.columns[0], drop=True)
-    
     df = df[target]
     print(df)
-    
     train = df[:-forecast] 
     test = df[-forecast:] 
 
@@ -66,7 +60,6 @@ def sarimax_optimize(df, date, target, forecast=None):
     plot_ts(train, test, y_pred, "SARIMA")
 
 
-
     ############################
     # Final Model
     ############################
@@ -74,9 +67,11 @@ def sarimax_optimize(df, date, target, forecast=None):
     model = SARIMAX(df, order=best_order, seasonal_order=best_seasonal_order)
     sarima_final_model = model.fit(disp=0)
 
-    feature_predict = sarima_final_model.get_forecast(steps=6)
+    feature_predict = sarima_final_model.get_forecast(steps=forecast)
     feature_predict = feature_predict.predicted_mean
 
-    print(feature_predict)
-
-    return feature_predict
+    output = {}
+    for i in range(forecast):
+        output[str(i+1) + ". day's forecast"] = feature_predict.iloc[i-1]
+    
+    return output

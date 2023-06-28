@@ -10,7 +10,8 @@ from sarimax_optimize import *
 from regression import *
 from cluster import *
 from role import *
-from prep_tools import fill_na
+from prep_tools import fill_na, get_Date_Column
+
 
 # df = pd.read_csv('time2.csv')
 # df = pd.read_csv('train.csv')
@@ -79,7 +80,6 @@ def create_model(df, date=None, target=None):
     }
 
     smooth_params = {
-        "date": date,
         "target": target,
         "forecast": 60,
         "method": "add",
@@ -95,7 +95,6 @@ def create_model(df, date=None, target=None):
     }
 
     sarimax_params = {
-        "date": date,
         "target": target,
         "forecast": 60
     }
@@ -178,9 +177,11 @@ def create_model(df, date=None, target=None):
     elif problem_type == "time series":
         print("Problem Type : Time Series")
         print("params : ", ts_params)
-        result = smoothing(df, **smooth_params)
-        result.update(time_series(df, **ts_params))
-        result.update(sarimax_optimize(df, **sarimax_params))
+        df = get_Date_Column(df)
+        result = {}
+        result["Smoothing Methods"] = smoothing(df, **smooth_params)
+        result["Statistical Methods"] = time_series(df, **ts_params)
+        result["Optimized SARIMA"] = sarimax_optimize(df, **sarimax_params)
 
     elif problem_type == "multi-class classification":
         print("Problem Type : Multi-Class Classification")

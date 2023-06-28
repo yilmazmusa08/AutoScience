@@ -180,22 +180,52 @@ def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
     
     return sub[col].mean()
 
-def fillnan(row, col, lower_coeff = 0.75, upper_coeff = 1.25):
-    # to use an example : df['bmi'] = df.apply(lambda row: fillna(row, 'bmi'), axis = 1)
-    query = []
-    for o in obj:
-        if not pd.isna(row[o]):
-            query.append("(" + str(o) + " == '" + str(row[o]) + "')")
-    for n in num:
-        if not pd.isna(row[n]):
-            query.append("(" + n + " >= " + str(row[n] * lower_coeff) + ")")
-            query.append("(" + n + " <= " + str(row[n] * upper_coeff) + ")")
+def get_Date_Column(DataFrame) -> pd.DataFrame:
+    if not isinstance(DataFrame, pd.DataFrame):
+        DataFrame = pd.DataFrame(DataFrame)
 
-    query = " and ".join(query)
-    sub = df.query(query)
-    if len(sub) == 0:
-        return None
-    return sub[col].mean()
+    date_formats = [
+        "%m/%Y",
+        "%m-%Y",
+        "%d/%m/%y",
+        "%m/%d/%y",
+        "%d.%m.%Y",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%m-%d-%Y",
+        "%d-%m-%Y",
+        "%d.%m.%y",
+        "%m.%d.%y",
+        "%Y/%m",
+        "%Y-%m",
+        "%m/%d",
+        "%d.%m",
+        "%d/%m",
+        "%m.%d",
+        "%Y",
+        "%d-%m"
+    ]
+
+    for column in DataFrame.columns:
+        values = DataFrame[column]
+        for f in date_formats:
+            try:
+                date = pd.to_datetime(values, format=f)
+                if date.dt.strftime(f).eq(values).all():
+                    try:
+                        DataFrame[column] = pd.to_datetime(DataFrame[column], errors='coerce')
+                        if all([isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in DataFrame[column].values]) or (DataFrame[column].dtype == 'datetime64[ns]'):
+                            DataFrame = DataFrame.set_index(column)
+                            return DataFrame
+                    except:
+                        pass
+            except ValueError:
+                pass
+
+    return DataFrame
+
 
 def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
     quartile1 = dataframe[col_name].quantile(q1)
