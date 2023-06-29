@@ -9,6 +9,7 @@ from smoothing import *
 from sarimax_optimize import *
 from regression import *
 from cluster import *
+from anomaly_detection import *
 from role import *
 from prep_tools import fill_na, get_Date_Column
 
@@ -89,6 +90,13 @@ def get_problem_type(df, target=None):
         "min_samples": 20
     }
 
+    anomal_params = {
+        "cv": 5,
+        "target": target,
+        "models": ["IsolationForest", "OneClassSVM", "EllipticEnvelope"],
+        "metrics": ['accuracy', 'precision_macro', 'f1_macro']
+    }
+
 
     for col in df.columns:
         if df[col].dtype == "object" and df[col].nunique() < 20:
@@ -149,7 +157,9 @@ def get_problem_type(df, target=None):
 
     if problem_type == "binary classification":
         print("Problem Type : Binary Classification")
-        return problem_type, list(binary_params)
+        params = []
+        params.append(binary_params)
+        return problem_type, params
 
     elif problem_type == "time series":
         print("Problem Type : Time Series")
@@ -162,22 +172,30 @@ def get_problem_type(df, target=None):
 
     elif problem_type == "multi-class classification":
         print("Problem Type : Multi-Class Classification")
-        return problem_type, list(mlp_params)
+        params = []
+        params.append(mlp_params)
+        return problem_type, params
 
 
     elif problem_type == "scoring":
         print("Problem Type : Regression")
-        return problem_type, list(reg_params)
+        params = []
+        params.append(reg_params)
+        return problem_type, params
 
 
     elif problem_type == "anomaly_detection":
         print("Problem Type : Anomaly Detection")
-        return problem_type
+        params = []
+        params.append(anomal_params)
+        return problem_type, params
 
 
     elif problem_type == "clustering":
         print("Problem Type : Clustering")
-        return problem_type, list(dbscan_params)
+        params = []
+        params.append(dbscan_params)
+        return problem_type, params
 
     else:
         return None
@@ -185,12 +203,10 @@ def get_problem_type(df, target=None):
 def create_model(df, problem_type=None, params=[]):
 
     if problem_type == "binary classification":
-        print("Problem Type : Binary Classification")
         print("params : ", params)
         result = binary_classification(df, **params[0])
 
     elif problem_type == "time series":
-        print("Problem Type : Time Series")
         print("params : ", params)
         df = get_Date_Column(df)
         result = {}
@@ -199,12 +215,10 @@ def create_model(df, problem_type=None, params=[]):
         result["Optimized SARIMA"] = sarimax_optimize(df, **params[2])
 
     elif problem_type == "multi-class classification":
-        print("Problem Type : Multi-Class Classification")
         print("params : ", params)
         result = multiclass_classification(df, **params[0])
 
     elif problem_type == "scoring":
-        print("Problem Type : Regression")
         print("params : ", params)
         result = regression(df, **params[0])
 
@@ -214,7 +228,6 @@ def create_model(df, problem_type=None, params=[]):
         # result = anomaly_detection(df, **anomal_params)
 
     elif problem_type == "clustering":
-        print("Problem Type : Clustering")
         print("params : ", params)
         result = dbscan(df, **params[0])
         print(visualize_clusters(df, result))
