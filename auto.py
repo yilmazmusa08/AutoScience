@@ -28,7 +28,7 @@ warnings.filterwarnings('ignore', category=ConvergenceWarning)
 
 path = "./models"
 sys.path.append(path)
-from init import create_model
+from init import preprocess, get_problem_type, create_model
 
 app = FastAPI()
 
@@ -79,10 +79,10 @@ def update_passwords():
 
 update_passwords()
 
-# Template dosyalarını yükleme
+# Upload Templates
 templates = Jinja2Templates(directory="template")
 
-# Statik dosyaları sunma
+# Mounting Static Files
 app.mount("/dist", StaticFiles(directory="dist"), name="dist")
 app.mount("/plugins", StaticFiles(directory="plugins"), name="plugins")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -219,13 +219,6 @@ def model(request: Request):
         return RedirectResponse(url="/", status_code=302)
 
 
-def check_status(user: User):
-
-    if user.subscription_status == "active":
-        return True
-    else:
-        return False
-
 
 @app.post("/analysis", response_class=HTMLResponse)
 async def run_analysis_api(
@@ -306,7 +299,11 @@ async def run_models(
     try:
         df = pd.read_csv(file.file)
 
-        output = create_model(df, target=target)
+        df = preprocess(df)
+
+        problem_type, params = get_problem_type(df, target=target)
+
+        output = create_model(df=df, problem_type=problem_type, params=params)
 
         output_file = os.path.join(os.getcwd(), "model.json")
 
@@ -326,7 +323,7 @@ async def show_result(request: Request):
     try:
         with open("model.json", "r") as f:
             output_model = json.load(f)
-            
+
         # Render the HTML template
         return templates.TemplateResponse("model.html", {"request": request, "result": json.dumps(output_model)})
     except Exception as e:
