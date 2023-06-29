@@ -18,34 +18,11 @@ from prep_tools import fill_na, get_Date_Column
 # df = pd.read_csv('Salary_Data.csv')
 # df = pd.read_csv('Ratings.csv')
 
-
-def preprocess(df): 
-    kt = KolonTipiTahmini1()  # KolonTipiTahmini1 sınıfı veya modülünün doğru şekilde yüklendiğinden emin olun
-
-    data_dict = {}
-    delete_cols = []  # Silinecek sütunları depolamak için boş bir liste oluşturun
-
-    if len(df) > 5000:
-        df=df.sample(n=5000)
-
-    for col in df.columns:
-        data_dict[col] = kt.fit_transform(df[[col]])[col]
-
-        if data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date":
-            delete_cols.append(col)  # Silinecek sütunları listeye ekleyin
-
-    print("DELETED COLUMNS : ", delete_cols)
-    df = df.drop(columns=delete_cols)  # Silinecek sütunları DataFrame'den kaldırın
-    return df
-
-
-
-
 def preprocess(df):
-    kt = KolonTipiTahmini1()  # KolonTipiTahmini1 sınıfı veya modülünün doğru şekilde yüklendiğinden emin olun
+    kt = KolonTipiTahmini1()  
 
     data_dict = {}
-    delete_cols = []  # Silinecek sütunları depolamak için boş bir liste oluşturun
+    delete_cols = []  
 
     if len(df) > 5000:
         df = df.sample(n=5000)
@@ -54,17 +31,18 @@ def preprocess(df):
         data_dict[col] = kt.fit_transform(df[[col]])[col]
 
         if data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date":
-            delete_cols.append(col)  # Silinecek sütunları listeye ekleyin
+            delete_cols.append(col)  
 
     print("DELETED COLUMNS: ", delete_cols)
-    df = df.drop(columns=delete_cols)  # Silinecek sütunları DataFrame'den kaldırın
+    df = df.drop(columns=delete_cols)  
     return df
 
 
 #df = preprocess(df)
 #print(df)
 
-def create_model(df, date=None, target=None):
+
+def get_problem_type(df, target=None):
 
     binary_params = {
         "cv": 5,
@@ -171,27 +149,64 @@ def create_model(df, date=None, target=None):
 
     if problem_type == "binary classification":
         print("Problem Type : Binary Classification")
-        print("params : ", binary_params)
-        result = binary_classification(df, **binary_params)
+        return problem_type, list(binary_params)
 
     elif problem_type == "time series":
         print("Problem Type : Time Series")
-        print("params : ", ts_params)
-        df = get_Date_Column(df)
-        result = {}
-        result["Smoothing Methods"] = smoothing(df, **smooth_params)
-        result["Statistical Methods"] = time_series(df, **ts_params)
-        result["Optimized SARIMA"] = sarimax_optimize(df, **sarimax_params)
+        params = []
+        params.append(smooth_params)
+        params.append(ts_params)
+        params.append(sarimax_params)
+        return problem_type, params
+
 
     elif problem_type == "multi-class classification":
         print("Problem Type : Multi-Class Classification")
-        print("params : ", mlp_params)
-        result = multiclass_classification(df, **mlp_params)
+        return problem_type, list(mlp_params)
+
 
     elif problem_type == "scoring":
         print("Problem Type : Regression")
-        print("params : ", reg_params)
-        result = regression(df, **reg_params)
+        return problem_type, list(reg_params)
+
+
+    elif problem_type == "anomaly_detection":
+        print("Problem Type : Anomaly Detection")
+        return problem_type
+
+
+    elif problem_type == "clustering":
+        print("Problem Type : Clustering")
+        return problem_type, list(dbscan_params)
+
+    else:
+        return None
+
+def create_model(df, problem_type=None, params=[]):
+
+    if problem_type == "binary classification":
+        print("Problem Type : Binary Classification")
+        print("params : ", params)
+        result = binary_classification(df, **params[0])
+
+    elif problem_type == "time series":
+        print("Problem Type : Time Series")
+        print("params : ", params)
+        df = get_Date_Column(df)
+        result = {}
+        result["Smoothing Methods"] = smoothing(df, **params[0])
+        result["Statistical Methods"] = time_series(df, **params[1])
+        result["Optimized SARIMA"] = sarimax_optimize(df, **params[2])
+
+    elif problem_type == "multi-class classification":
+        print("Problem Type : Multi-Class Classification")
+        print("params : ", params)
+        result = multiclass_classification(df, **params[0])
+
+    elif problem_type == "scoring":
+        print("Problem Type : Regression")
+        print("params : ", params)
+        result = regression(df, **params[0])
 
     elif problem_type == "anomaly_detection":
         print("Problem Type : Anomaly Detection")
@@ -200,15 +215,14 @@ def create_model(df, date=None, target=None):
 
     elif problem_type == "clustering":
         print("Problem Type : Clustering")
-        print("params : ", dbscan_params)
-        result = dbscan(df, **dbscan_params)
+        print("params : ", params)
+        result = dbscan(df, **params[0])
         print(visualize_clusters(df, result))
 
     else:
         result = None
 
     return result
-
 # print(create_model(df, target='Salary')) # Salary_Data.csv
 # print(create_model(df, date='DATE', target='Value')) # time2.csv
 #print(create_model(df))  Online_Retail.xlsx
