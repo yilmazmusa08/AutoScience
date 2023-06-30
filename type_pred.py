@@ -164,7 +164,7 @@ class KolonTipiTahmini1:
         return result
 
 
-def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshold_col=0.1, threshold_target=0.5, return_stats: bool = False):
+def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, threshold_target=0.5, return_stats: bool = False):
     """----Bu fonksiyon veri setini analiz etmek için tasarlanmıştır.Fonksiyonun aldığı parametreler şunlardır:
     Parametreler:
     _____________
@@ -254,8 +254,7 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
 # ======================================
     if target:
         corr_dict = {}  # Korelasyon dict oluşturuluyor
-        nan_ratio_list = []  # NaN oranları listesi oluşturuluyor
-        warning_list = []  # warning listesi oluşturuluyor
+        ratio = []  # NaN oranları listesi oluşturuluyor
         corr_deneme = []  # kolonlar arası dusuk korelasyonu bulmak için
 
         problem_type = None  # problem_type değişkeni başlangıçta atanmamış olarak başlatılıyor
@@ -323,100 +322,48 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
         else:
             pass
 
-        for col in df.columns: # Veri setindeki her kolon için:
-            if df[col].dtype == "int64" or df[col].dtype == "float64":# Eğer kolon sayısal ise:
-                null_values = df[col].isna().sum() # NaN değerlerinin sayısı hesaplanıyor
-                zero_values = (df[col] == 0).sum()# Sıfır değerlerinin sayısı hesaplanıyor
-                total_values = len(df[col])  # Toplam satır sayısı hesaplanıyor
-                null_ratio = null_values / total_values  # NaN oranı hesaplanıyor
-                zero_ratio = zero_values / total_values  # Sıfır oranı hesaplanıyor
-                unique_ratio = len(df[col].unique()) / total_values# Benzersiz değer oranı hesaplanıyor
-                ratio_str = ""  # Oranların string olarak birleştirileceği değişken tanımlanıyor
+        ratio = []  # Boş bir liste oluştur
 
-                if null_ratio > 0:  # Eğer NaN oranı sıfırdan büyükse:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)# NaN oranı stringe ekleniyor
-                if zero_ratio > 0 and null_ratio == 0: # Eğer sıfır oranı sıfırdan büyük ve NaN oranı sıfırsa:
-                    if len(ratio_str) > 0:  # Daha önce oran eklendi ise:
-                        ratio_str += ", "  # Stringe virgül ekleniyor
-                    ratio_str += "sparse:{:.2f}%".format(zero_ratio * 100) # Sıfır oranı stringe ekleniyor
-                if unique_ratio >= 0.95 and null_ratio == 0 and zero_ratio == 0: # Eğer benzersiz değer oranı %95'ten büyük, NaN ve sıfır oranları sıfırsa:
-                    if len(ratio_str) > 0:  # Daha önce oran eklendi ise:
-                        ratio_str += ", "  # Stringe virgül ekleniyor
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100) # Benzersiz değer oranı stringe ekleniyor
-                if null_ratio > 0:  # eğer sütunda NaN oranı varsa:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)  # oranlar stringine NaN oranını ekler.
-                if unique_ratio >= 0.95 and null_ratio == 0:# eğer sütunda benzersiz değerlerin oranı %95'ten fazlaysa ve NaN oranı yoksa:
-                    if len(ratio_str) > 0:  # eğer oranlar stringi doluysa:
-                        ratio_str += ", "  # oranlar stringine virgül ekler.
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)# oranlar stringine benzersiz değer oranını ekler.
-                    if warning:  # warning değişkeni True ise:
-                        if problem_type.get("problem_type") != 'anomaly detection': # problem_type  anomaly detection ise wagningl'ler hesplanacak warning_liste' eklenmeyecek
-                            warning_list.append(col)  # warning listesine sütunu ekler.
-                if null_ratio > 0.5:  # eğer sütundaki NaN oranı %50'den fazlaysa:
-                    if warning:  # warning değişkeni True ise:
-                        if problem_type.get("problem_type") != 'anomaly detection':
-                            warning_list.append(col)# warning listesine sütunu ekler.
-                if problem_type.get("problem_type") != 'anomaly detection':
-                    if zero_ratio > 0.8:
-                        warning_list.append(col)
-
-                
-                corr = df.select_dtypes(include=np.number).corr()[col]# Korelasyon matrisindeki korelasyon değerlerini hesapla
-                high_corr_cols = corr[(corr > threshold_col) & (corr.index != col) & (
-                    corr.index.isin(df.select_dtypes(include=np.number).columns))].index.tolist()# Yüksek korelasyonlu sütunların isimleri
-                if high_corr_cols:# Eğer yüksek korelasyonlu sütun varsa, corr_dict'e ekle
-                    corr_dict[col] = {"high_corr_with": high_corr_cols}
-                    corr_deneme.append(col)
-                
-                if ratio_str or high_corr_cols:# Eğer NaN oranı veya yüksek korelasyonlu sütun varsa, nan_ratio_list'e ekle
-                    nan_ratio = {"column": col}
-                    if ratio_str:
-                        nan_ratio["ratio"] = ratio_str
-                    if col in corr_dict:
-                        nan_ratio.update(corr_dict[col])
-                    nan_ratio_list.append(nan_ratio)
-
-            
-            else:# Eğer sütun numerik değil ise:
-                
-                null_values = df[col].isna().sum()# NaN değerlerin sayısını hesapla
-                total_values = len(df[col]) # Toplam değer sayısını hesapla
-                null_ratio = null_values / total_values# NaN oranını hesapla
+        for col in df.columns:
+            if df[col].dtype == "int64" or df[col].dtype == "float64":
+                null_values = df[col].isna().sum()
                 zero_values = (df[col] == 0).sum()
+                total_values = len(df[col])
+                null_ratio = null_values / total_values
                 zero_ratio = zero_values / total_values
-                unique_ratio = len(df[col].unique()) / total_values# Benzersiz değer oranını hesapla
-                ratio_str = ""  # boş bir oranlar stringi oluşturur.
+                unique_ratio = len(df[col].unique()) / total_values
+                ratio_str = ""
 
-                if null_ratio > 0:  # eğer sütunda NaN oranı varsa:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)# oranlar stringine NaN oranını ekler.
-                if unique_ratio >= 0.95 and null_ratio == 0:# eğer sütunda benzersiz değerlerin oranı %95'ten fazlaysa ve NaN oranı yoksa:
-                    if len(ratio_str) > 0:  # eğer oranlar stringi doluysa:
-                        ratio_str += ", "  # oranlar stringine virgül ekler.
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)# oranlar stringine benzersiz değer oranını ekler.
-                    warning_list.append(col)  # warning listesine sütunu ekler.
-                if null_ratio > 0.5:  # eğer sütundaki NaN oranı %50'den fazlaysa:
-                    warning_list.append(col)  # warning listesine sütunu ekler.
+                if null_ratio > 0.7:
+                    ratio_str += "very high nan rate"
+                elif null_ratio > 0.3:
+                    ratio_str += "high nan"
+                elif null_ratio > 0.1:
+                    ratio_str += "medium nan rate"
+                
 
-                if ratio_str:  # eğer oranlar stringi doluysa:
-                    nan_ratio = {"column": col}# sütun adı ile bir sözlük oluşturur.
-                    nan_ratio["ratio"] = ratio_str  # warning listesine sütunu ekler.
-                    nan_ratio_list.append(nan_ratio)# NaN oranları listesine sözlüğü ekler.
+                if unique_ratio > 0.9:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    ratio_str += "very high unique rate"
+                elif unique_ratio > 0.3:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    ratio_str += "high unique"
+                elif unique_ratio > 0.1:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    ratio_str += "medium unique rate"
+                else:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    
 
-               
-        """sütunlar arasındaki korelasyonları hesaplar.
-            Daha sonra, hedef değişken ile diğer sütunlar arasındaki korelasyonu ölçmek 
-                için hedef değişken ile  sütunlar arasındaki korelasyonları alır. Daha sonra, 
-                    hedef değişken ile korelasyonu en düşük olan sütunu seçer ve warning_list listesine ekler.
-                        Bu şekilde, target ile düşük korelasyona sahip sütunlar modelleme sürecinde göz ardı edilebilir."""
+                if null_ratio == 0 and unique_ratio == 0:
+                    ratio_str = "no warning"
 
-        if problem_type.get("problem_type") != 'anomaly detection':
-            if len(corr_deneme) > 0:
-                test = {key: korelasyonlar[key] for key in corr_deneme if key in korelasyonlar}
-                if test:
-                    min_value = min(abs(val) for val in test.values())
-                    min_key = [key for key, value in test.items() if abs(value) == min_value][0]
-                    if warning:
-                        warning_list.append(min_key)
+                ratio.append({col: ratio_str})       
+
 
 
 # target aktif olduğu zaman-veri setindeki hedef değişkeni kullanarak özellik seçimi (feature_importance) yapar.
@@ -469,92 +416,49 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
     if target is None:
         clustering = 'clustering'
         clustering = {clustering}
-        corr_dict = {}
-        nan_ratio_list = []
-        warning_list = []
+        ratio = []
         problem_type = {}
-        for col in df.columns:  # Veri setindeki her kolon için:
-            if df[col].dtype == "int64" or df[col].dtype == "float64":# Eğer kolon sayısal ise:
-                null_values = df[col].isna().sum() # NaN değerlerinin sayısı hesaplanıyor
-                zero_values = (df[col] == 0).sum() # Sıfır değerlerinin sayısı hesaplanıyor
-                total_values = len(df[col])  # Toplam satır sayısı hesaplanıyor
-                null_ratio = null_values / total_values  # NaN oranı hesaplanıyor
-                zero_ratio = zero_values / total_values  # Sıfır oranı hesaplanıyor
-                unique_ratio = len(df[col].unique()) / total_values # Benzersiz değer oranı hesaplanıyor
-                ratio_str = ""  # Oranların string olarak birleştirileceği değişken tanımlanıyor
-                if null_ratio > 0:  # Eğer NaN oranı sıfırdan büyükse:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100) # NaN oranı stringe ekleniyor
-                if zero_ratio > 0 and null_ratio == 0:# Eğer sıfır oranı sıfırdan büyük ve NaN oranı sıfırsa:
-                    if len(ratio_str) > 0:  # Daha önce oran eklendi ise:
-                        ratio_str += ", "  # Stringe virgül ekleniyor
-                    ratio_str += "sparse:{:.2f}%".format(zero_ratio * 100)# Sıfır oranı stringe ekleniyor
-                if unique_ratio >= 0.95 and null_ratio == 0 and zero_ratio == 0:# Eğer benzersiz değer oranı %95'ten büyük, NaN ve sıfır oranları sıfırsa:
-                    if len(ratio_str) > 0:  # Daha önce oran eklendi ise:
-                        ratio_str += ", "  # Stringe virgül ekleniyor       
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100) # Benzersiz değer oranı stringe ekleniyor
-
-                if null_ratio > 0:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                if unique_ratio >= 0.95 and null_ratio == 0:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
-                    warning_list.append(col)
-                if null_ratio > 0.5:
-                    warning_list.append(col)
-
-                if zero_ratio > 0.8:
-                    warning_list.append(col)
-
-               
-                corr = df.select_dtypes(include=np.number).corr()[col] # Korelasyon matrisindeki korelasyon değerlerini hesapla
-                high_corr_cols = corr[(corr > threshold_col) & (corr.index != col) & (
-                    corr.index.isin(df.select_dtypes(include=np.number).columns))].index.tolist() # Yüksek korelasyonlu sütunların isimleri
-                if high_corr_cols:# Eğer yüksek korelasyonlu sütun varsa, corr_dict'e ekle
-                    corr_dict[col] = {"high_corr_with": high_corr_cols}
-
-               
-                if ratio_str or high_corr_cols: # Eğer NaN oranı veya yüksek korelasyonlu sütun varsa, nan_ratio_list'e ekle
-                    nan_ratio = {"column": col}
-                    if ratio_str:
-                        nan_ratio["ratio"] = ratio_str
-                    if col in corr_dict:
-                        nan_ratio.update(corr_dict[col])
-                    nan_ratio_list.append(nan_ratio)
-
-           
-            else: # Eğer sütun numerik değil ise:
-              
-                null_values = df[col].isna().sum() # NaN değerlerin sayısını hesapla
-                total_values = len(df[col]) # Toplam değer sayısını hesapla
-                null_ratio = null_values / total_values# NaN oranını hesapla
+        for col in df.columns:
+            if df[col].dtype == "int64" or df[col].dtype == "float64":
+                null_values = df[col].isna().sum()
                 zero_values = (df[col] == 0).sum()
+                total_values = len(df[col])
+                null_ratio = null_values / total_values
                 zero_ratio = zero_values / total_values
-                unique_ratio = len(df[col].unique()) / total_values# Benzersiz değer oranını hesapla
-                ratio_str = ""  # boş bir oranlar stringi oluşturur.
-                if null_ratio > 0:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                if unique_ratio >= 0.95 and null_ratio == 0:
-                    if len(ratio_str) > 0:
+                unique_ratio = len(df[col].unique()) / total_values
+                ratio_str = ""
+
+                if null_ratio > 0.7:
+                    ratio_str += "very high nan rate"
+                elif null_ratio > 0.3:
+                    ratio_str += "high nan"
+                elif null_ratio > 0.1:
+                    ratio_str += "medium nan rate"
+                
+
+                if unique_ratio > 0.9:
+                    if ratio_str != "":
                         ratio_str += ", "
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
-                    warning_list.append(col)
-                if null_ratio > 0.5:
-                    warning_list.append(col)
+                    ratio_str += "very high unique rate"
+                elif unique_ratio > 0.3:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    ratio_str += "high unique"
+                elif unique_ratio > 0.1:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    ratio_str += "medium unique rate"
+                else:
+                    if ratio_str != "":
+                        ratio_str += ", "
+                    
 
-                if ratio_str:
-                    nan_ratio = {"column": col}
-                    nan_ratio["ratio"] = ratio_str
-                    nan_ratio_list.append(nan_ratio)
+                if null_ratio == 0 and unique_ratio == 0:
+                    ratio_str = "no warning"
 
-# Warning=False olduğu zaman
-# ==========================
-    if warning is False:
+                ratio.append({col: ratio_str})   
+
         if target:
-            corr_dict = {}
-            nan_ratio_list = []
-            warning_list = []
-            corr_deneme = []  # kolonlar arasında dusuk corr bulmak için
 
             numeric_columns = df.select_dtypes(include='number').columns
             corr_matrix = df[numeric_columns].corr()[[target]]
@@ -568,223 +472,107 @@ def analysis(df: pd.DataFrame, target=None, columns=None, warning=True, threshol
                 korelasyonlar[kolonlar[i]] = corr_matrix.iloc[i, 0]
 
 
-            for col in df.columns:  # Veri setindeki her kolon için:
-                if df[col].dtype == "int64" or df[col].dtype == "float64": # Eğer kolon sayısal ise:
-                    null_values = df[col].isna().sum() # NaN değerlerinin sayısı hesaplanıyor
-                    zero_values = (df[col] == 0).sum()# Sıfır değerlerinin sayısı hesaplanıyor
-                    total_values = len(df[col]) # Toplam satır sayısı hesaplanıyor
-                    null_ratio = null_values / total_values  # NaN oranı hesaplanıyor
-                    zero_ratio = zero_values / total_values  # Sıfır oranı hesaplanıyor
-                    unique_ratio = len(df[col].unique()) / total_values # Benzersiz değer oranı hesaplanıyor
-                    ratio_str = ""  # Oranların string olarak birleştirileceği değişken tanımlanıyor
-
-                    if null_ratio > 0:  # Eğer NaN oranı sıfırdan büyükse:
-                        ratio_str += "NaN:{:.2f}%".format(null_ratio * 100) # NaN oranı stringe ekleniyor
-                    if zero_ratio > 0 and null_ratio == 0:# Eğer sıfır oranı sıfırdan büyük ve NaN oranı sıfırsa:
-                        if len(ratio_str) > 0:  # Daha önce oran eklendi ise:
-                            ratio_str += ", "  # Stringe virgül ekleniyor
-                        ratio_str += "sparse:{:.2f}%".format(zero_ratio * 100)# Sıfır oranı stringe ekleniyor
-                    if unique_ratio >= 0.95 and null_ratio == 0 and zero_ratio == 0: # Eğer benzersiz değer oranı %95'ten büyük, NaN ve sıfır oranları sıfırsa:
-                        if len(ratio_str) > 0:  # Daha önce oran eklendi ise:
-                            ratio_str += ", "  # Stringe virgül ekleniyor
-                        ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)# Benzersiz değer oranı stringe ekleniyor
-
-                    if null_ratio > 0:
-                        ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                    if unique_ratio >= 0.95 and null_ratio == 0:
-                        if len(ratio_str) > 0:
-                            ratio_str += ", "
-                        ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)# oranlar stringine benzersiz değer oranını ekler.
-                        if warning is False:
-                            if problem_type.get("problem_type") != 'anomaly detection':
-                                warning_list.append(col)  # warning listesine sütunu ekler.
-                    if null_ratio > 0.5:  # eğer sütundaki NaN oranı %50'den fazlaysa:
-                        if warning is False:
-                            if problem_type.get("problem_type") != 'anomaly detection':#problem tipi anomaly detection değilse
-                                warning_list.append(col)# warning listesine sütunu ekler.
-                    if problem_type.get("problem_type") != 'anomaly detection':
-                        if zero_ratio > 0.8:
-                            warning_list.append(col)
-
-                    
-                    corr = df.select_dtypes(include=np.number).corr()[col]# Korelasyon matrisindeki korelasyon değerlerini hesapla              
-                    high_corr_cols = corr[(corr > threshold_col) & (corr.index != col) & (
-                        corr.index.isin(df.select_dtypes(include=np.number).columns))].index.tolist()# Yüksek korelasyonlu sütunların isimleri
-                   
-                    if high_corr_cols: # Eğer yüksek korelasyonlu sütun varsa, corr_dict'e ekle
-                        corr_dict[col] = {"high_corr_with": high_corr_cols}
-                        corr_deneme.append(col)
-
-                    
-                    if ratio_str or high_corr_cols:# Eğer NaN oranı veya yüksek korelasyonlu sütun varsa, nan_ratio_list'e ekle
-                        nan_ratio = {"column": col}
-                        if ratio_str:
-                            nan_ratio["ratio"] = ratio_str
-                        if col in corr_dict:
-                            nan_ratio.update(corr_dict[col])
-                        nan_ratio_list.append(nan_ratio)
-
-               
-                else: # Eğer sütun numerik değil ise:
-                  
-                    null_values = df[col].isna().sum() # NaN değerlerin sayısını hesapla
-                    total_values = len(df[col])# Toplam değer sayısını hesapla
-                    null_ratio = null_values / total_values # NaN oranını hesapla
+            for col in df.columns:
+                if df[col].dtype == "int64" or df[col].dtype == "float64":
+                    null_values = df[col].isna().sum()
                     zero_values = (df[col] == 0).sum()
+                    total_values = len(df[col])
+                    null_ratio = null_values / total_values
                     zero_ratio = zero_values / total_values
-                    unique_ratio = len(df[col].unique()) / total_values # Benzersiz değer oranını hesapla
-                    ratio_str = ""  # boş bir oranlar stringi oluşturur.
+                    unique_ratio = len(df[col].unique()) / total_values
+                    ratio_str = ""
 
-                    if null_ratio > 0:
-                        ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                    if unique_ratio >= 0.95 and null_ratio == 0:
-                        if len(ratio_str) > 0:
+                    if null_ratio > 0.7:
+                        ratio_str += "very high nan rate"
+                    elif null_ratio > 0.3:
+                        ratio_str += "high nan"
+                    elif null_ratio > 0.1:
+                        ratio_str += "medium nan rate"
+                    
+
+                    if unique_ratio > 0.9:
+                        if ratio_str != "":
                             ratio_str += ", "
-                        ratio_str += "unique:{:.2f}%".format(
-                            unique_ratio * 100)
-                        warning_list.append(col)
-                    if null_ratio > 0.5:
-                        warning_list.append(col)
-
-                    if ratio_str:
-                        nan_ratio = {"column": col}
-                        nan_ratio["ratio"] = ratio_str
-                        nan_ratio_list.append(nan_ratio)
-
-            if problem_type.get("problem_type") != 'anomaly detection':
-                if len(corr_deneme) > 0:
-                    test = {key: korelasyonlar[key]
-                            for key in corr_deneme if key in korelasyonlar}
-                    min_value = min(abs(val) for val in test.values())
-                    min_key = [key for key, value in test.items() if abs(
-                        value) == min_value][0]
-                    if warning is False:
-                        warning_list.append(min_key)
+                        ratio_str += "very high unique rate"
+                    elif unique_ratio > 0.3:
+                        if ratio_str != "":
+                            ratio_str += ", "
+                        ratio_str += "high unique"
+                    elif unique_ratio > 0.1:
+                        if ratio_str != "":
+                            ratio_str += ", "
+                        ratio_str += "medium unique rate"
+                    else:
+                        if ratio_str != "":
+                            ratio_str += ", "
                         
+
+                    if null_ratio == 0 and unique_ratio == 0:
+                        ratio_str = "no warning"
+
+                    ratio.append({col: ratio_str}) 
+
                         
 # return_stats = True olduğunda
 # ============================
     if return_stats:
         if target:
-            if warning is False:
-                result = {
-                    "Role": data_dict,
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "high_corr_target": high_corr_target,
-                    "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                    "problem_type": problem_type
-                }
-                return result
-
-            if warning:
-                missing_columns = [col for col in warning_list if col in df.columns]
-                df = df.drop(missing_columns, axis=1)
-                df_head = df.head(1)
-                df_head = df_head.to_json(orient="records")
-                result = {
-                    "Role": data_dict,
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                    "problem_type": problem_type,
-                    "df_head": df_head}
-
-                return result
+            result = {
+                "Role": data_dict,
+                "ratio": ratio,
+                "distributions": result_dict,
+                "high_corr_target": high_corr_target,
+                "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
+                "problem_type": problem_type
+            }
+            return result
 
         if target is None:
-            if warning is False:
-                result = {
-                    "Role": data_dict,
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "problem_type": clustering}
-                return result
-        
-            if warning is True:
-                missing_columns = [col for col in warning_list if col in df.columns]
-                df = df.drop(missing_columns, axis=1)
-                df_head = df.head(1)
-                df_head = df_head.to_json(orient="records")
-                result = {
-                    "Role": data_dict,
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "problem_type": clustering}
-                return result
+            result = {
+                "Role": data_dict,
+                "ratio": ratio,
+                "distributions": result_dict,
+                "problem_type": clustering}
+            return result
             
-
-
 # return_stats = False olduğu zaman
 # ===============================
     else:
-        if warning is False:
-            if target is None:
-                result = {
-                    "Role": {k: v['Role'] for k, v in data_dict.items()},
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "problem_type": clustering
-                }
-
-                return result
-
-        else:
-            if target is None:
-                df = df.drop(warning_list, axis=1)
-                df_head = df.head(1)
-                df_head = df_head.to_json(orient="records")
-                result = {
-                    "Role": {k: v['Role'] for k, v in data_dict.items()},
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "problem_type": clustering,
-                    "df_head": df_head}
-
-                return result
+        if target is None:
+            result = {
+                "Role": {k: v['Role'] for k, v in data_dict.items()},
+                "ratio": ratio,
+                "distributions": result_dict,
+                "problem_type": clustering
+            }
+            return result
 
         feature_importance = {}  # Boş bir sözlük olarak tanımlanıyor
-        if warning:
-            if target:
-                columns_to_drop = [col for col in warning_list if col in df.columns]
-                df = df.drop(columns_to_drop, axis=1)
-                
-                df_head = df.head(1)
-                df_head = df_head.to_json(orient="records")
-                result = {
-                    "Role": {k: v['Role'] for k, v in data_dict.items()},
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "high_corr_target": high_corr_target,
-                }
-                
-                if len(feature_importance) > 2:  # Yeni koşul
-                    result["feature_importance"] = {k: f"{v}%" for k, v in feature_importance.items()}
-                
-                result["problem_type"] = problem_type
-                result["df_head"] = df_head
-                
-                return result
+        if target:
+            result = {
+                "Role": {k: v['Role'] for k, v in data_dict.items()},
+                "ratio": ratio,
+                "distributions": result_dict,
+                "high_corr_target": high_corr_target,
+            }
+            
+            if len(feature_importance) > 2:  # Yeni koşul
+                result["feature_importance"] = {k: f"{v}%" for k, v in feature_importance.items()}
+            
+            result["problem_type"] = problem_type
+            return result
+        
 
-
-            else:
-                result = {
-                    "Role": {k: v['Role'] for k, v in data_dict.items()},
-                    "Warning List": warning_list,
-                    "Warning": nan_ratio_list,
-                    "distributions": result_dict,
-                    "high_corr_target": high_corr_target,
-                    "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                    "problem_type": problem_type
-                }
-                return result
+        else:
+            result = {
+                "Role": {k: v['Role'] for k, v in data_dict.items()},
+                "ratio": ratio,
+                "distributions": result_dict,
+                "high_corr_target": high_corr_target,
+                "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
+                "problem_type": problem_type
+            }
+            return result
 
 
 # Principal Component
@@ -827,5 +615,6 @@ def set_to_list(data):
     return data
 
 
-# df = pd.read_csv("train.csv")
-# print(analysis(df,target="Survived",return_stats=True))
+df = pd.read_csv("/home/firengiz/Belgeler/proje/automl/Iris.csv")
+
+print(analysis(df,target='Species',return_stats=False))
