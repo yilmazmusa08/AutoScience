@@ -139,7 +139,6 @@ class KolonTipiTahmini1:
             uniqR_val=round(uniqR[i], 5) if uniqR.get(i) is not None else None
             allunique_val=round(allunique[i], 5) if allunique.get(i) is not None else None
             kolon_role_val=kolon_role[data.columns.get_loc(i)]
-            top3=data[i].value_counts().nlargest(3).index.tolist()
             sonuc.append({
                 'col_name': i,
                 'distm': distm_val,
@@ -154,7 +153,6 @@ class KolonTipiTahmini1:
                 "most":most_val,
                 "mostR %":mostR_val,
                 "allunique":allunique_val,
-                "top3":top3,
                 'Role': kolon_role_val})
 
         result={}
@@ -163,40 +161,43 @@ class KolonTipiTahmini1:
             result[col_name]=d
         return result
 
-
-def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, threshold_target=0.5, return_stats: bool = False):
+def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
     """----Bu fonksiyon veri setini analiz etmek için tasarlanmıştır.Fonksiyonun aldığı parametreler şunlardır:
-    Parametreler:
-    _____________
-    1-df: analiz edilecek veri seti
-    2-threshold_col: sütunlar arasındaki yüksek korelasyon için eşik değeri (varsayılan olarak 0.8)
-    3-threshold_target: hedef değişkenle sütunlar arasındaki yüksek korelasyon için eşik değeri (varsayılan olarak 0.4)
-    4-target: hedef değişkenin belirten bir boolean (varsayılan olarak None)
-    5-columns: analiz edilecek sütunların listesi (varsayılan olarak tüm sütunlar seçilir)
-    6-warning:warning parametresi, herhangi bir uyarı mesajı görüntülemek için kullanılabilir. 
+    
+    ----- Parametreler ------:
+    __________________________
+    1-df: analiz edilecek veri seti:
+    _______________________________
+    2-threshold_col: sütunlar arasındaki yüksek korelasyon için eşik değeri (varsayılan olarak 0.8):
+    _______________________________________________________________________________________________
+    3-threshold_target: hedef değişkenle sütunlar arasındaki yüksek korelasyon için eşik değeri (varsayılan olarak 0.4):
+    ___________________________________________________________________________________________________________________
+    4-target: hedef değişkenin belirten bir boolean (varsayılan olarak None):
+    ______________________________________________________________________________________
+    6-warning:warning parametresi, herhangi bir uyarı mesajı görüntülemek için kullanılabilir.:
+    __________________________________________________________________________________________ 
     Bu uyarı mesajı, kullanıcının daha sonra yapacağı işlemleri yönlendirmesine yardımcı olabilir.Warning = True
-    olduğu zaman warning'i olan sütünları siler.
-    7-return_stats: veri seti istatistiklerini içeren bir dict döndürmek için bir boolean (varsayılan olarak False)"""
+    olduğu zaman warning'i olan sütünları siler:
+    _______________________________________________________________________________________________________________."""
 
-    high_corr_cols = []
     high_corr_target = []
     kt = KolonTipiTahmini1()
+    data_dict = kt.fit_transform(df)
+    categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
+    label_encoders = {}
+    for column in categorical_columns:
+        le = LabelEncoder()
+        df[column] = le.fit_transform(df[column])
 
-    if columns:  # Model (Class)--> kuruluyor
-        data_dict = {}
-        for col in columns:
-            data_dict[col] = kt.fit_transform(df[[col]])[col]
+    if target is not None:
+        if df[target].dtype == 'object':
+            le = LabelEncoder()
+            df[target] = le.fit_transform(df[target])
+            corr = True
+        else:
+            corr = True
     else:
-        data_dict = kt.fit_transform(df)
-
-# returun=True,returun=False
-# ==========================
-
-    # target object değilse kolerasyon hesaplanacak
-    if target is not None and df[target].dtype == 'object':
         corr = False
-    else:
-        corr = True
 
     if corr:
         numeric_columns = df.select_dtypes(include=['int64', 'float64']).columns
@@ -253,10 +254,6 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
 # Problem tipinin ve metrik belirlenmesi
 # ======================================
     if target:
-        corr_dict = {}  # Korelasyon dict oluşturuluyor
-        ratio = []  # NaN oranları listesi oluşturuluyor
-        corr_deneme = []  # kolonlar arası dusuk korelasyonu bulmak için
-
         problem_type = None  # problem_type değişkeni başlangıçta atanmamış olarak başlatılıyor
         metrics = None  # metrics değişkeni başlangıçta atanmamış olarak başlatılıyor
         
@@ -309,8 +306,6 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
 # =======================================================================================================================================================================================================
 
         numeric_columns = df.select_dtypes(include=['int', 'float']).columns
-        print(numeric_columns)
-
         korelasyonlar = {}
         if isinstance(target, int):
             corr_matrix = df[numeric_columns].corr()[[target]]
@@ -322,8 +317,7 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
         else:
             pass
 
-        ratio = []  # Boş bir liste oluştur
-
+        warning_list = []
         for col in df.columns:
             if df[col].dtype == "int64" or df[col].dtype == "float64":
                 null_values = df[col].isna().sum()
@@ -332,39 +326,27 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
                 null_ratio = null_values / total_values
                 zero_ratio = zero_values / total_values
                 unique_ratio = len(df[col].unique()) / total_values
+
                 ratio_str = ""
 
-                if null_ratio > 0.7:
-                    ratio_str += "very high nan rate"
-                elif null_ratio > 0.3:
-                    ratio_str += "high nan"
-                elif null_ratio > 0.1:
-                    ratio_str += "medium nan rate"
-                
+                if null_ratio > 0:
+                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
 
-                if unique_ratio > 0.9:
-                    if ratio_str != "":
+                if zero_ratio > 0.6 and null_ratio == 0:
+                    if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "very high unique rate"
-                elif unique_ratio > 0.3:
-                    if ratio_str != "":
+                    ratio_str += "sparse:{:.2f}%".format(zero_ratio * 100)
+
+                if unique_ratio >= 0.95 and null_ratio == 0 and zero_ratio == 0:
+                    if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "high unique"
-                elif unique_ratio > 0.1:
-                    if ratio_str != "":
-                        ratio_str += ", "
-                    ratio_str += "medium unique rate"
-                else:
-                    if ratio_str != "":
-                        ratio_str += ", "
-                    
+                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
 
-                if null_ratio == 0 and unique_ratio == 0:
-                    ratio_str = "no warning"
+                if ratio_str:
+                    warning_list.append([col, ratio_str])
 
-                ratio.append({col: ratio_str})       
-
-
+        if not warning_list:
+            warning_list.append(["no warning"])        
 
 # target aktif olduğu zaman-veri setindeki hedef değişkeni kullanarak özellik seçimi (feature_importance) yapar.
 # =============================================================================================================
@@ -391,7 +373,6 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
                 y = df.loc[X.index, target]
             else:
                 y = df[target]
-
         feature_names = X.columns
 
         if len(feature_names) > 2:  # Yeni koşul
@@ -416,8 +397,9 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
     if target is None:
         clustering = 'clustering'
         clustering = {clustering}
-        ratio = []
+        warning_list = []
         problem_type = {}
+
         for col in df.columns:
             if df[col].dtype == "int64" or df[col].dtype == "float64":
                 null_values = df[col].isna().sum()
@@ -428,153 +410,46 @@ def analysis(df: pd.DataFrame, target=None, columns=None, threshold_col=0.1, thr
                 unique_ratio = len(df[col].unique()) / total_values
                 ratio_str = ""
 
-                if null_ratio > 0.7:
-                    ratio_str += "very high nan rate"
-                elif null_ratio > 0.3:
-                    ratio_str += "high nan"
-                elif null_ratio > 0.1:
-                    ratio_str += "medium nan rate"
-                
+                if null_ratio > 0:
+                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
 
-                if unique_ratio > 0.9:
-                    if ratio_str != "":
+                if zero_ratio > 0.6 and null_ratio == 0:
+                    if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "very high unique rate"
-                elif unique_ratio > 0.3:
-                    if ratio_str != "":
+                    ratio_str += "sparse:{:.2f}%".format(zero_ratio * 100)
+
+                if unique_ratio >= 0.95 and null_ratio == 0 and zero_ratio == 0:
+                    if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "high unique"
-                elif unique_ratio > 0.1:
-                    if ratio_str != "":
-                        ratio_str += ", "
-                    ratio_str += "medium unique rate"
-                else:
-                    if ratio_str != "":
-                        ratio_str += ", "
-                    
+                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
 
-                if null_ratio == 0 and unique_ratio == 0:
-                    ratio_str = "no warning"
+                if ratio_str:
+                    warning_list.append([col, ratio_str])
 
-                ratio.append({col: ratio_str})   
-
-        if target:
-
-            numeric_columns = df.select_dtypes(include='number').columns
-            corr_matrix = df[numeric_columns].corr()[[target]]
-            print('cor_matrix', corr_matrix)
-
-            corr_matrix = corr_matrix.drop(target)
-            kolonlar = list(corr_matrix.index)
-            korelasyonlar = {}
-
-            for i in range(len(kolonlar)):
-                korelasyonlar[kolonlar[i]] = corr_matrix.iloc[i, 0]
+        if not warning_list:
+            warning_list.append(["no warning"])
 
 
-            for col in df.columns:
-                if df[col].dtype == "int64" or df[col].dtype == "float64":
-                    null_values = df[col].isna().sum()
-                    zero_values = (df[col] == 0).sum()
-                    total_values = len(df[col])
-                    null_ratio = null_values / total_values
-                    zero_ratio = zero_values / total_values
-                    unique_ratio = len(df[col].unique()) / total_values
-                    ratio_str = ""
+    if target:
+        result = {
+            "Role": data_dict,
+            "warning_list": warning_list,
+            "distributions": result_dict,
+            "high_corr_target": high_corr_target,
+            "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
+            "problem_type": problem_type
+        }
+        return result
 
-                    if null_ratio > 0.7:
-                        ratio_str += "very high nan rate"
-                    elif null_ratio > 0.3:
-                        ratio_str += "high nan"
-                    elif null_ratio > 0.1:
-                        ratio_str += "medium nan rate"
-                    
-
-                    if unique_ratio > 0.9:
-                        if ratio_str != "":
-                            ratio_str += ", "
-                        ratio_str += "very high unique rate"
-                    elif unique_ratio > 0.3:
-                        if ratio_str != "":
-                            ratio_str += ", "
-                        ratio_str += "high unique"
-                    elif unique_ratio > 0.1:
-                        if ratio_str != "":
-                            ratio_str += ", "
-                        ratio_str += "medium unique rate"
-                    else:
-                        if ratio_str != "":
-                            ratio_str += ", "
-                        
-
-                    if null_ratio == 0 and unique_ratio == 0:
-                        ratio_str = "no warning"
-
-                    ratio.append({col: ratio_str}) 
-
-                        
-# return_stats = True olduğunda
-# ============================
-    if return_stats:
-        if target:
-            result = {
-                "Role": data_dict,
-                "ratio": ratio,
-                "distributions": result_dict,
-                "high_corr_target": high_corr_target,
-                "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                "problem_type": problem_type
-            }
-            return result
-
-        if target is None:
-            result = {
-                "Role": data_dict,
-                "ratio": ratio,
-                "distributions": result_dict,
-                "problem_type": clustering}
-            return result
-            
-# return_stats = False olduğu zaman
-# ===============================
-    else:
-        if target is None:
-            result = {
-                "Role": {k: v['Role'] for k, v in data_dict.items()},
-                "ratio": ratio,
-                "distributions": result_dict,
-                "problem_type": clustering
-            }
-            return result
-
-        feature_importance = {}  # Boş bir sözlük olarak tanımlanıyor
-        if target:
-            result = {
-                "Role": {k: v['Role'] for k, v in data_dict.items()},
-                "ratio": ratio,
-                "distributions": result_dict,
-                "high_corr_target": high_corr_target,
-            }
-            
-            if len(feature_importance) > 2:  # Yeni koşul
-                result["feature_importance"] = {k: f"{v}%" for k, v in feature_importance.items()}
-            
-            result["problem_type"] = problem_type
-            return result
-        
-
-        else:
-            result = {
-                "Role": {k: v['Role'] for k, v in data_dict.items()},
-                "ratio": ratio,
-                "distributions": result_dict,
-                "high_corr_target": high_corr_target,
-                "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                "problem_type": problem_type
-            }
-            return result
-
-
+    if target is None:
+        result = {
+            "Role": data_dict,
+            "warning_list": warning_list,
+            "distributions": result_dict,
+            "problem_type": clustering}
+        return result
+    
+################################################################################################
 # Principal Component
 def calculate_pca(df, comp_ratio=1.0, target=None):
     for col in df.columns:
@@ -615,6 +490,5 @@ def set_to_list(data):
     return data
 
 
-df = pd.read_csv("/home/firengiz/Belgeler/proje/automl/Iris.csv")
-
-print(analysis(df,target='Species',return_stats=False))
+df = pd.read_csv("/home/firengiz/Belgeler/proje/automl/bank.csv")
+print(analysis(df,target='target'))
