@@ -467,7 +467,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
     
 ################################################################################################
 # Principal Component
-def calculate_pca(df, comp_ratio=1.0, target=None):
+def calculate_pca(df, comp_ratio=0.95, target=None):
     for col in df.columns:
         if df[col].dtype == 'object':
             if df[col].nunique() < 20:
@@ -505,6 +505,3 @@ def set_to_list(data):
         return int(data)
     return data
 
-
-df = pd.read_csv("/home/firengiz/Belgeler/proje/automl/Iris.csv")
-print(analysis(df,target='Species'))

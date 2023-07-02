@@ -225,9 +225,6 @@ async def run_analysis_api(
     request: Request,
     file: UploadFile = File(...),
     target: str = Form(...),
-    warning: bool = Form(True),
-    return_stats: bool = Form(False),
-    comp_ratio: float = Form(1.0),
     current_user: User = Depends(get_current_user)
 ):
     print("Access token found:", current_user.email)
@@ -236,7 +233,7 @@ async def run_analysis_api(
         df = pd.read_csv(file.file)
         print(df)
 
-        sonuc = analysis(df=df, target=target, warning=warning, return_stats=return_stats)
+        sonuc = analysis(df=df, target=target)
 
         pca_dict = {}
         for col in sonuc['Role']:
@@ -253,7 +250,7 @@ async def run_analysis_api(
                     df[col].fillna(df[col].mean(), inplace=True)
 
             df[col] = df[col].fillna(df[col].mean())
-            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']), comp_ratio=comp_ratio)
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
             pca_dict = {
                 'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
                 'Principal Component': result_dict['Principal Component']
@@ -301,9 +298,9 @@ async def run_models(
 
         df = preprocess(df)
 
-        problem_type, params = get_problem_type(df, target=target)
+        problem_type, params = get_problem_type(df, target=target) # problem_type and params 
 
-        output = create_model(df=df, problem_type=problem_type, params=params)
+        output = create_model(df=df, problem_type=problem_type, params=params) 
 
         output_file = os.path.join(os.getcwd(), "model.json")
 
