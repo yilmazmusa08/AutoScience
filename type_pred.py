@@ -24,7 +24,7 @@ class KolonTipiTahmini1:
             data=pd.DataFrame(data)
         if len(data) > 5000:
             data=data.sample(n=5000)
-            
+             
         distm=data.apply(lambda x: np.mean(pd.Series(x).value_counts(normalize=True).values))#değişkenin benzersiz değerlerinin frekans dağılımının normalleştirilmiş değerlerinin ortalamasını hesaplar.
         dists=data.apply(lambda x: np.std(pd.Series(x).value_counts(normalize=True).values))# benzersiz değerlerinin frekans dağılımının normalleştirilmiş değerlerinin standart sapmasını hesaplar.
         wc=data.apply(lambda x: round(len(str(x).split()) / len(str(x)), 5))#her bir değişkenin ortalama kelime sayısını hesaplar.
@@ -184,7 +184,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
     kt = KolonTipiTahmini1()
     data_dict = kt.fit_transform(df)
     categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
-    label_encoders = {}
+
     for column in categorical_columns:
         le = LabelEncoder()
         df[column] = le.fit_transform(df[column])
@@ -216,40 +216,37 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
             if is_int:
                 # Eğer tüm satırlar tamsayı ise, sütunun veri tipi 'int' olarak değiştirilir.
                 df[col] = df[col].astype("int")
+                print(df.info())
         except:
             pass  # Hata oluşursa geçilir.
     result_dict = {}
     distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
                      'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'weibull']  # Kullanılacak dağılımların listesi oluşturulur.
-    # float64' veri tipine sahip tüm sütunlar için bir döngü
-    for col in df.select_dtypes(include=['float64']).columns:
-        if len(df) >= 5000:
-            # örnekleme işlemi verinin daha hızlı işlenmesine yardımcı olmak için
-            df_sampled = df.sample(n=5000, random_state=42)
-        else:
-            df_sampled = df  # satır sayısı 2000'den küçükse orijinal veri kullanılır
-        # kullanılacak dağılımlar parametre olarak verilir.
-        f = Fitter(df_sampled[col], distributions=distributions)
-        f.fit()
-        # Uygunluk hesaplamalarında hata oluştuysa devam edilir.
-        if len(f.df_errors) > 0:
-            try:
-                # En uygun dağılımı belirleyen get_best() yöntemi kullanılır ve sonuçlar sözlük olarak döndürülür. En uygun dağılımın adı alınır ve best_dist değişkenine atanır.
-                best_dist = list(f.get_best().keys())[0]
-            except KeyError:  # Eğer en uygun dağılım adı elde edilemezse geçilir.
-                continue
+    for col in df.columns:
+        if df[col].nunique() <= 20:
+            df[col] = LabelEncoder().fit_transform(df[col])
 
-            # dağılım adı 'weibull_min' veya 'weibull_max' ise 'weibull' olarak değiştirilir.
-            if best_dist == 'weibull_min' or best_dist == 'weibull_max':
-                best_dist = 'weibull'
-            # dağılım adı 'lognormvariate' ise 'lognorm' olarak değiştirilir.
-            elif best_dist == 'lognormvariate':
-                best_dist = 'lognorm'
-            # dağılım adı 'norm' ise 'gauss' olarak değiştirilir.
-            elif best_dist == 'norm':
-                best_dist = 'gauss'
-            # En uygun dağılım adı, sütun adı ile birlikte sözlüğe eklenir.
-            result_dict[col] = best_dist
+        if df[col].dtype == 'int64' or df[col].dtype == 'float64':
+            if len(df) >= 5000:
+                df_sampled = df.sample(n=5000, random_state=42)
+            else:
+                df_sampled = df
+            f = Fitter(df_sampled[col], distributions=distributions)
+            f.fit()
+            if len(f.df_errors) > 0:
+                try:
+                    best_dist = list(f.get_best().keys())[0]
+                except KeyError:
+                    continue
+
+                if best_dist == 'weibull_min' or best_dist == 'weibull_max':
+                    best_dist = 'weibull'
+                elif best_dist == 'lognormvariate':
+                    best_dist = 'lognorm'
+                elif best_dist == 'norm':
+                    best_dist = 'gauss'
+
+                result_dict[col] = best_dist
 
 # Problem tipinin ve metrik belirlenmesi
 # ======================================
@@ -354,6 +351,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
         null_counts = df.isnull().sum()
         empty_cols = null_counts[null_counts >= len(df) * 0.6].index
         df.drop(empty_cols, axis=1, inplace=True)
+        print(df.columns)
 
         for col in df.columns:
             if df[col].dtype == 'object' and df[col].nunique() < 20:
@@ -375,7 +373,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
                 y = df[target]
         feature_names = X.columns
 
-        if len(feature_names) > 2:  # Yeni koşul
+        if len(feature_names) >= 2:
             rf = RandomForestClassifier(n_jobs=-1, n_estimators=500, oob_score=True, max_depth=5)
 
             feat_selector = BorutaPy(rf, n_estimators='auto', verbose=0, random_state=42)
@@ -390,6 +388,36 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
 
             for feature in feature_importance:
                 feature_importance[feature] = round((feature_importance[feature] / total_importance) * 100, 2)
+
+            if target and len(feature_importance) >= 2:
+                result = {
+                    "Role": data_dict,
+                    "warning_list": warning_list,
+                    "distributions": result_dict,
+                    "high_corr_target": high_corr_target,
+                    "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
+                    "problem_type": problem_type
+                }
+            else:
+                result = {
+                    "Role": data_dict,
+                    "warning_list": warning_list,
+                    "distributions": result_dict,
+                    "high_corr_target": high_corr_target,
+                    "problem_type": problem_type
+        
+                }
+        else:
+            result = {
+                "Role": data_dict,
+                "warning_list": warning_list,
+                "distributions": result_dict,
+                "high_corr_target": high_corr_target,
+                "problem_type": problem_type
+                
+            }
+
+        return result
 
 
 # Warning hesaplaması target aktif olmadığı zaman ve warning None olduğu zaman. Tek değişiklik(if warning is None:)
@@ -428,19 +456,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
 
         if not warning_list:
             warning_list.append(["no warning"])
-
-
-    if target:
-        result = {
-            "Role": data_dict,
-            "warning_list": warning_list,
-            "distributions": result_dict,
-            "high_corr_target": high_corr_target,
-            "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-            "problem_type": problem_type
-        }
-        return result
-
+    
     if target is None:
         result = {
             "Role": data_dict,
@@ -490,5 +506,5 @@ def set_to_list(data):
     return data
 
 
-df = pd.read_csv("/home/firengiz/Belgeler/proje/automl/bank.csv")
-print(analysis(df,target='target'))
+df = pd.read_csv("/home/firengiz/Belgeler/proje/automl/Iris.csv")
+print(analysis(df,target='Species'))
