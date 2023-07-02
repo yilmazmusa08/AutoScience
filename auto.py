@@ -233,10 +233,10 @@ async def run_analysis_api(
         df = pd.read_csv(file.file)
         print(df)
 
-        sonuc = analysis(df=df, target=target)
+        output = analysis(df=df, target=target)
 
         pca_dict = {}
-        for col in sonuc['Role']:
+        for col in output['Role']:
             null_counts = df.isnull().sum()
             empty_cols = null_counts[null_counts >= len(df) * 0.6].index
             df.drop(empty_cols, axis=1, inplace=True)
@@ -255,7 +255,7 @@ async def run_analysis_api(
                 'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
                 'Principal Component': result_dict['Principal Component']
             }
-
+      
         output['PCA'] = pca_dict
         output = set_to_list(output)
         output_analysis = {"result": output}

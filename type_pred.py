@@ -25,18 +25,18 @@ class KolonTipiTahmini1:
         if len(data) > 5000:
             data=data.sample(n=5000)
              
-        distm=data.apply(lambda x: np.mean(pd.Series(x).value_counts(normalize=True).values))#değişkenin benzersiz değerlerinin frekans dağılımının normalleştirilmiş değerlerinin ortalamasını hesaplar.
-        dists=data.apply(lambda x: np.std(pd.Series(x).value_counts(normalize=True).values))# benzersiz değerlerinin frekans dağılımının normalleştirilmiş değerlerinin standart sapmasını hesaplar.
-        wc=data.apply(lambda x: round(len(str(x).split()) / len(str(x)), 5))#her bir değişkenin ortalama kelime sayısını hesaplar.
-        wcs=data.apply(lambda x: np.std([len(str(kelime).split()) for kelime in x]))#her bir değişkenin kelime sayılarının standart sapmasını hesaplar.
-        Len=data.apply(lambda x: len(str(x)) / len(x))#her bir değişkenin ortalamada kaç karakter içerdiğini hesaplar.
-        lens=data.apply(lambda x: np.std([len(str(s).replace(" ", "")) for s in x]))# her bir değişkenin karakter sayılarının standart sapmasını hesaplar.
-        uniq=data.apply(lambda x: pd.Series(x).nunique())#her bir değişkenin benzersiz değerlerinin sayısını hesaplar.
-        most=data.apply(lambda x: pd.Series(x).value_counts().idxmax() if len(x)>0 and not x.isnull().all() else np.nan)#her bir değişkendeki en sık görülen değeri hesaplar.
-        mostR=data.apply(lambda x: pd.Series(x).value_counts(normalize=True).values[0] if len(x)>0 and not x.isnull().all() else np.nan)#her bir değişkendeki en sık görülen değerin oranını hesaplar.
-        uniqR=data.apply(lambda x: pd.Series(x).nunique() / len(x))# her bir değişkendeki benzersiz değerlerin oranını hesaplar.
-        allunique=data.apply(lambda x: int(x.nunique() == len(x)))#her bir değişkendeki değerlerin hepsinin benzersiz olup olmadığını hesaplar.
-        kolon_role=[]
+        distm=data.apply(lambda x: np.mean(pd.Series(x).value_counts(normalize=True).values))# Calculates the mean of normalized frequency distribution values for unique values in each column.
+        dists=data.apply(lambda x: np.std(pd.Series(x).value_counts(normalize=True).values))# Calculates the standard deviation of normalized frequency distribution values for unique values in each column.
+        wc=data.apply(lambda x: round(len(str(x).split()) / len(str(x)), 5))# Calculates the average number of words in each column.
+        wcs=data.apply(lambda x: np.std([len(str(kelime).split()) for kelime in x]))# Calculates the standard deviation of the word counts in each column.
+        Len=data.apply(lambda x: len(str(x)) / len(x))#  Calculates the average number of characters in each column.
+        lens=data.apply(lambda x: np.std([len(str(s).replace(" ", "")) for s in x]))# Calculates the standard deviation of the character counts in each column.
+        uniq=data.apply(lambda x: pd.Series(x).nunique())# Calculates the number of unique values in each column.
+        most=data.apply(lambda x: pd.Series(x).value_counts().idxmax() if len(x)>0 and not x.isnull().all() else np.nan)# Calculates the most frequently occurring value in each column.
+        mostR=data.apply(lambda x: pd.Series(x).value_counts(normalize=True).values[0] if len(x)>0 and not x.isnull().all() else np.nan)# Calculates the ratio of the most frequently occurring value in each column.
+        uniqR=data.apply(lambda x: pd.Series(x).nunique() / len(x))# Calculates the ratio of unique values in each column.
+        allunique=data.apply(lambda x: int(x.nunique() == len(x)))# Determines if all values in each column are unique (1 if True, 0 if False).
+        kolon_role=[] # An empty list that can be used to store the role of each column.
         
         if columns:
             data=data[columns]
@@ -81,7 +81,7 @@ class KolonTipiTahmini1:
             for date_col in date_cols:
                 col_idx=data.columns.get_loc(date_col)
                 kolon_role[col_idx]='date'
-        #Eğer kolon değerleri datetime ise o zaman hangı formatda olduğunu gosterir
+        # If the column values are datetime, it will display the format in which they are stored.
         def get_Date_Format(data) -> str:
             if not isinstance(data, pd.DataFrame):
                 dataframe=pd.DataFrame(data)
@@ -161,24 +161,25 @@ class KolonTipiTahmini1:
             result[col_name]=d
         return result
 
-def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
-    """----Bu fonksiyon veri setini analiz etmek için tasarlanmıştır.Fonksiyonun aldığı parametreler şunlardır:
+def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
+    """
+    This function is designed to analyze a dataset. The function takes the following parameters:
     
-    ----- Parametreler ------:
-    __________________________
-    1-df: analiz edilecek veri seti:
-    _______________________________
-    2-threshold_col: sütunlar arasındaki yüksek korelasyon için eşik değeri (varsayılan olarak 0.8):
-    _______________________________________________________________________________________________
-    3-threshold_target: hedef değişkenle sütunlar arasındaki yüksek korelasyon için eşik değeri (varsayılan olarak 0.4):
-    ___________________________________________________________________________________________________________________
-    4-target: hedef değişkenin belirten bir boolean (varsayılan olarak None):
-    ______________________________________________________________________________________
-    6-warning:warning parametresi, herhangi bir uyarı mesajı görüntülemek için kullanılabilir.:
-    __________________________________________________________________________________________ 
-    Bu uyarı mesajı, kullanıcının daha sonra yapacağı işlemleri yönlendirmesine yardımcı olabilir.Warning = True
-    olduğu zaman warning'i olan sütünları siler:
-    _______________________________________________________________________________________________________________."""
+    Parameters:
+    -----------
+    1. df: The dataset to be analyzed.
+    
+    2. threshold_col: The threshold value for high correlation between columns (default: 0.8).
+    
+    3. threshold_target: The threshold value for high correlation between columns and the target variable (default: 0.4).
+    
+    4. target: A boolean indicating the target variable (default: None).
+    
+    5. warning: The warning parameter can be used to display any warning messages. 
+       This warning message can help guide the user in subsequent operations. If warning is set to True,
+       it will remove the columns with warnings.
+    """
+
 
     high_corr_target = []
     kt = KolonTipiTahmini1()
@@ -207,18 +208,19 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
             if target is not None and col != target and corr_matrix[target][col] >= threshold_target:
                 high_corr_target.append(col)
 
-# Bu kodda bir veri seti için farklı olasılık dağılım fonksiyonlarının uygunluğu test edilir.
+# In this code, the suitability of different probability distribution functions for a dataset is tested.
 # ===========================================================================================
     for col in df:
-        try:  # Her sütun için bir hata ayıklama bloğu başlatılır.
-            # Sütunun tam sayı türünde olup olmadığını kontrol etmek için tüm satırların tamsayı olup olmadığını kontrol eden bir lambda işlevi tanımlanır ve apply() yöntemi kullanarak tüm sütuna uygulanır. Sonuçlar all() yöntemi ile kontrol edilir ve is_int değişkenine atanır.
+        try:  # Start an error handling block for each column
+            # Define a lambda function to check if all rows are integers to determine if the column is of integer type, and apply it to the entire column using the apply() method. The results are checked with the all() method and assigned to the is_int variable.
             is_int = df[col].apply(lambda x: x.is_integer()).all()
             if is_int:
-                # Eğer tüm satırlar tamsayı ise, sütunun veri tipi 'int' olarak değiştirilir.
+                # If all rows are integers, the data type of the column is changed to 'int'.
                 df[col] = df[col].astype("int")
                 print(df.info())
         except:
-            pass  # Hata oluşursa geçilir.
+            pass  # If an error occurs, continue to the next column.
+
     result_dict = {}
     distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
                      'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'weibull']  # Kullanılacak dağılımların listesi oluşturulur.
@@ -248,58 +250,57 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
 
                 result_dict[col] = best_dist
 
-# Problem tipinin ve metrik belirlenmesi
+# Determining the Problem Type and Metrics
 # ======================================
     if target:
-        problem_type = None  # problem_type değişkeni başlangıçta atanmamış olarak başlatılıyor
-        metrics = None  # metrics değişkeni başlangıçta atanmamış olarak başlatılıyor
-        
-        # Eğer veri setindeki sütun sayısı 5'ten büyükse ve hedef değişkenin veri tipi int64 veya float64 ise ve benzersiz değer sayısı 20'den büyükse problem_type değişkenine 'scoring' atanır
+        problem_type = None  # The problem_type variable is initially set to None
+        metrics = None  # The metrics variable is initially set to None
+
+        # If the number of columns in the dataset is greater than 5 and the data type of the target variable is int64 or float64, and the number of unique values in the target variable is greater than 20, assign 'scoring' to the problem_type variable
         if len(df.columns) > 5 and df[target].dtype in ['int64', 'float64'] and df[target].nunique() > 20:
             problem_type = 'scoring'
             metrics = ['r2_score', 'mean_absolute_error', 'mean_squared_error']
-        elif df[target].nunique() == 2:  # Eğer hedef değişkenin benzersiz değer sayısı 2 ise
+        elif df[target].nunique() == 2:  # If the number of unique values in the target variable is 2
             min_count = df[target].value_counts().min()
-            # hedef değişkenin sınıflarının sayısı %1'lik dilimdeki örnek sayısından daha küçükse:
+            # If the number of classes of the target variable is less than 1% of the sample size:
             if min_count < 0.01 * len(df):
-                # problem_type değişkenine 'anomaly detection' atanır.
+                # Assign 'anomaly detection' to the problem_type variable.
                 problem_type = 'anomaly detection'
                 metrics = ['precision_score', 'recall_score', 'f1_score']
-            else:  # aksi takdirde:
-                # problem_type değişkenine 'binary classification' atanır.
+            else:
+                # Otherwise, assign 'binary classification' to the problem_type variable.
                 problem_type = 'binary classification'
                 metrics = ['f1_score', 'precision_score', 'recall_score']
-        # Eğer hedef değişkenin benzersiz değer sayısı 2 ile 20 arasındaysa:
+        # If the number of unique values in the target variable is between 2 and 20:
         elif 2 < df[target].nunique() < 20:
-            # problem_type değişkenine 'multi-class classification' atanır.
+            # Assign 'multi-class classification' to the problem_type variable.
             problem_type = 'multi-class classification'
             metrics = ['accuracy_score', 'precision_score', 'recall_score']
-        # Eğer veri setindeki sütun sayısı 5'ten küçükse:
+        # If the number of columns in the dataset is less than 5:
         elif len(df.columns) < 5:
             for col in df:
-                # veri setindeki her sütunun veri tipi 'object' ise:
+                # If the data type of each column in the dataset is 'object':
                 if df[col].dtype == 'object':
                     try:
-                        # sütunların 'datetime64[ns]' veri tipine dönüştürülebilir ise:
+                        # If the columns can be converted to 'datetime64[ns]' data type:
                         df[col] = pd.to_datetime(df[col])
                     except:
                         pass
             if any(df[col].dtype == 'datetime64[ns]' for col in df.columns):
-                # problem_type değişkenine 'time series' atanır.
+                # Assign 'time series' to the problem_type variable.
                 problem_type = 'time series'
                 metrics = ['mae', 'mse', 'rmse']
-
             elif len(df.columns) < 5 and len([col for col in df.columns if isinstance(df[col], "int")]) == 2 or any(re.search(r'(id|ID|Id|iD>|ıd)', col) for col in df.columns):
-                # problem_type değişkenine 'recommendation' atanır.
+                # Assign 'recommendation' to the problem_type variable.
                 problem_type = 'recommendation'
                 metrics = ['recall_score', 'precision_score', 'map_score']
 
-        # problem_type değişkeni atanmışsa problem_type sözlük olarak {'problem_type': problem_type, 'metrics': metrics} şeklinde atanır.
+
+        # If the problem_type variable is assigned, it is stored as a dictionary in the format {'problem_type': problem_type, 'metrics': metrics}.
         if problem_type is not None:
             problem_type = {'problem_type': problem_type, 'metrics': metrics}
 
-
-# target aktif olduğu zaman -- Bu kod bloğu, NaN, sparse ve unique değerleri kontrol eder ve sayısal sütunlar arasındaki yüksek korelasyonu kontrol eder.Eğer warning TRue olursa warning kolonları siler
+# When the target is active, this code block checks for NaN values, sparse values, and unique values. It also checks for high correlation among numerical columns. If the warning variable is True, it removes the warning columns.
 # =======================================================================================================================================================================================================
 
         numeric_columns = df.select_dtypes(include=['int', 'float']).columns
@@ -345,7 +346,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
         if not warning_list:
             warning_list.append(["no warning"])        
 
-# target aktif olduğu zaman-veri setindeki hedef değişkeni kullanarak özellik seçimi (feature_importance) yapar.
+# When the target is active, feature selection (feature importance) is performed using the target variable in the dataset.
 # =============================================================================================================
         # Silme işlemi
         null_counts = df.isnull().sum()
@@ -420,7 +421,7 @@ def analysis(df: pd.DataFrame, target=None,threshold_target=0.2):
         return result
 
 
-# Warning hesaplaması target aktif olmadığı zaman ve warning None olduğu zaman. Tek değişiklik(if warning is None:)
+# If the target is not active or warning is None, a warning calculation is performed.
 # ==================================================================================================================
     if target is None:
         clustering = 'clustering'
@@ -481,7 +482,7 @@ def calculate_pca(df, comp_ratio=0.95, target=None):
     pca.fit(df[numeric_cols])
     explained_var_ratio = pca.explained_variance_ratio_
     cumsum_var_ratio = np.cumsum(explained_var_ratio)
-    n_components = len(cumsum_var_ratio)  # n_components doğrudan cumsum_var_ratio'nun uzunluğu olarak ayarlanıyor
+    n_components = len(cumsum_var_ratio)  # The n_components is directly set as the length of the cumsum_var_ratio.
     pca = PCA(n_components=n_components)
     pca.fit(df[numeric_cols])
     explained_var_ratio = pca.explained_variance_ratio_
