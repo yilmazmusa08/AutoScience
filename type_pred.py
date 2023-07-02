@@ -25,6 +25,17 @@ class KolonTipiTahmini1:
         if len(data) > 5000:
             data=data.sample(n=5000)
              
+        distm=data.apply(lambda x: np.mean(pd.Series(x).value_counts(normalize=True).values))# Calculates the mean of normalized frequency distribution values for unique values in each column.
+        dists=data.apply(lambda x: np.std(pd.Series(x).value_counts(normalize=True).values))# Calculates the standard deviation of normalized frequency distribution values for unique values in each column.
+        wc=data.apply(lambda x: round(len(str(x).split()) / len(str(x)), 5))# Calculates the average number of words in each column.
+        wcs=data.apply(lambda x: np.std([len(str(kelime).split()) for kelime in x]))# Calculates the standard deviation of the word counts in each column.
+        Len=data.apply(lambda x: len(str(x)) / len(x))#  Calculates the average number of characters in each column.
+        lens=data.apply(lambda x: np.std([len(str(s).replace(" ", "")) for s in x]))# Calculates the standard deviation of the character counts in each column.
+        uniq=data.apply(lambda x: pd.Series(x).nunique())# Calculates the number of unique values in each column.
+        most=data.apply(lambda x: pd.Series(x).value_counts().idxmax() if len(x)>0 and not x.isnull().all() else np.nan)# Calculates the most frequently occurring value in each column.
+        mostR=data.apply(lambda x: pd.Series(x).value_counts(normalize=True).values[0] if len(x)>0 and not x.isnull().all() else np.nan)# Calculates the ratio of the most frequently occurring value in each column.
+        uniqR=data.apply(lambda x: pd.Series(x).nunique() / len(x))# Calculates the ratio of unique values in each column.
+        allunique=data.apply(lambda x: int(x.nunique() == len(x)))# Determines if all values in each column are unique (1 if True, 0 if False).
         kolon_role=[] # An empty list that can be used to store the role of each column.
         
         if columns:
@@ -65,12 +76,83 @@ class KolonTipiTahmini1:
             else:
                 kolon_role.append("indentifier")
 
-        
+        if 'date' in kolon_role:
+            date_cols=[col for col, role in zip(data.columns, kolon_role) if role == 'date']
+            for date_col in date_cols:
+                col_idx=data.columns.get_loc(date_col)
+                kolon_role[col_idx]='date'
+        # If the column values are datetime, it will display the format in which they are stored.
+        def get_Date_Format(data) -> str:
+            if not isinstance(data, pd.DataFrame):
+                dataframe=pd.DataFrame(data)
+
+            date_formats=[   
+                "%m/%Y",
+                "%m-%Y",    
+                "%d/%m/%y",  
+                "%m/%d/%y",  
+                "%d.%m.%Y",  
+                "%d/%m/%Y", 
+                "%m/%d/%Y",  
+                "%Y-%m-%d",  
+                "%Y/%m/%d",  
+                "%m-%d-%Y",  
+                "%d-%m-%Y", 
+                "%d.%m.%y",
+                "%m.%d.%y",
+                "%Y/%m",
+                "%Y-%m",
+                "%m/%d",
+                "%d.%m",
+                "%d/%m",
+                "%m.%d",
+                "%Y",
+                "%d-%m"
+                ]
+            dict1={}
+            for column in data.columns:
+                values=data[column]
+                for f in date_formats:
+                    try:
+                        date=pd.to_datetime(values, format=f)
+                        if date.dt.strftime(f).eq(values).all():
+                            dict1=f
+                            break
+                    except ValueError:
+                        pass
+                else: 
+                    dict1=None
+            return dict1
+        date_formats = data.apply(lambda col: get_Date_Format(col.to_frame()))
+
         sonuc=[]
         for i in data.columns:
+            distm_val=round(distm[i], 5) if distm.get(i) is not None else None
+            dists_val=round(dists[i], 5) if dists.get(i) is not None else None
+            wc_val=round(wc[i], 5) if wc.get(i) is not None else None
+            wcs_val=round(wcs[i], 5) if wcs.get(i) is not None else None
+            len_val=round(Len[i], 5) if Len.get(i) is not None else None
+            lens_val=round(lens[i], 5) if lens.get(i) is not None else None
+            uniq_val=round(uniq[i], 5) if uniq.get(i) is not None else None
+            most_val=most[i] if most.get(i) is not None else None
+            mostR_val=round(mostR[i], 5) if mostR.get(i) is not None else None
+            uniqR_val=round(uniqR[i], 5) if uniqR.get(i) is not None else None
+            allunique_val=round(allunique[i], 5) if allunique.get(i) is not None else None
             kolon_role_val=kolon_role[data.columns.get_loc(i)]
             sonuc.append({
                 'col_name': i,
+                'distm': distm_val,
+                'date_formats': date_formats[i],
+                'dists': dists_val,
+                "wc":wc_val,
+                "wcs":wcs_val,
+                "len":len_val,
+                "lens":lens_val,
+                "uniq":uniq_val,
+                "uniqR %":uniqR_val,
+                "most":most_val,
+                "mostR %":mostR_val,
+                "allunique":allunique_val,
                 'Role': kolon_role_val})
 
         result={}
@@ -246,23 +328,37 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
                 ratio_str = ""
 
-                if null_ratio > 0 and zero_ratio > 0.60:
+       
+                
+                if null_ratio > 0:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "sparse:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100, null_ratio * 100)
+                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
+                
+                if zero_ratio > 0.70 and null_ratio > 0.1:
+                    if len(ratio_str) > 0:
+                        ratio_str += ", "
+                    ratio_str += "space:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100,null_ratio * 100)
 
-        
-                if unique_ratio > 0.80 and null_ratio > 0:
+                if zero_ratio > 0.70:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "unique:{:.2f}%, NaN:{:.2f}%".format(unique_ratio * 100, null_ratio * 100)
+                    ratio_str += "space:{:.2f}% ".format(zero_ratio * 100)
+                
+                if unique_ratio > 0.80:
+                    if len(ratio_str) > 0:
+                        ratio_str += ", "
+                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
+
+
 
                 if ratio_str:
                     warning_list.append([col, ratio_str])
 
         if not warning_list:
             warning_list.append(["no warning"])
-      
+
+
 
 # When the target is active, feature selection (feature importance) is performed using the target variable in the dataset.
 # =============================================================================================================
@@ -355,23 +451,30 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
                 null_ratio = null_values / total_values
                 zero_ratio = zero_values / total_values
                 unique_ratio = len(df[col].unique()) / total_values
+
                 ratio_str = ""
 
+       
+                
                 if null_ratio > 0:
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-
-                if zero_ratio > 0.6 and null_ratio == 0:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "sparse:{:.2f}%".format(zero_ratio * 100)
+                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
+                
+                if zero_ratio > 0.70 and null_ratio > 0.1:
+                    if len(ratio_str) > 0:
+                        ratio_str += ", "
+                    ratio_str += "space:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100,null_ratio * 100)
 
-                if unique_ratio >= 0.95 and null_ratio == 0 and zero_ratio == 0:
+                if zero_ratio > 0.70:
+                    if len(ratio_str) > 0:
+                        ratio_str += ", "
+                    ratio_str += "space:{:.2f}% ".format(zero_ratio * 100)
+                
+                if unique_ratio > 0.80:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
                     ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
-
-                if ratio_str:
-                    warning_list.append([col, ratio_str])
 
         if not warning_list:
             warning_list.append(["no warning"])
