@@ -127,32 +127,9 @@ class KolonTipiTahmini1:
 
         sonuc=[]
         for i in data.columns:
-            distm_val=round(distm[i], 5) if distm.get(i) is not None else None
-            dists_val=round(dists[i], 5) if dists.get(i) is not None else None
-            wc_val=round(wc[i], 5) if wc.get(i) is not None else None
-            wcs_val=round(wcs[i], 5) if wcs.get(i) is not None else None
-            len_val=round(Len[i], 5) if Len.get(i) is not None else None
-            lens_val=round(lens[i], 5) if lens.get(i) is not None else None
-            uniq_val=round(uniq[i], 5) if uniq.get(i) is not None else None
-            most_val=most[i] if most.get(i) is not None else None
-            mostR_val=round(mostR[i], 5) if mostR.get(i) is not None else None
-            uniqR_val=round(uniqR[i], 5) if uniqR.get(i) is not None else None
-            allunique_val=round(allunique[i], 5) if allunique.get(i) is not None else None
             kolon_role_val=kolon_role[data.columns.get_loc(i)]
             sonuc.append({
                 'col_name': i,
-                'distm': distm_val,
-                'date_formats': date_formats[i],
-                'dists': dists_val,
-                "wc":wc_val,
-                "wcs":wcs_val,
-                "len":len_val,
-                "lens":lens_val,
-                "uniq":uniq_val,
-                "uniqR %":uniqR_val,
-                "most":most_val,
-                "mostR %":mostR_val,
-                "allunique":allunique_val,
                 'Role': kolon_role_val})
 
         result={}
@@ -488,7 +465,6 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         return result
     
 ################################################################################################
-# Principal Component
 def calculate_pca(df, comp_ratio=0.95, target=None):
     for col in df.columns:
         if df[col].dtype == 'object':
@@ -503,15 +479,18 @@ def calculate_pca(df, comp_ratio=0.95, target=None):
     pca.fit(df[numeric_cols])
     explained_var_ratio = pca.explained_variance_ratio_
     cumsum_var_ratio = np.cumsum(explained_var_ratio)
-    n_components = len(cumsum_var_ratio)  # The n_components is directly set as the length of the cumsum_var_ratio.
+    if comp_ratio <= 1:
+        n_components = np.argmax(cumsum_var_ratio >= comp_ratio) + 1
+    else:
+        n_components = int(comp_ratio)
+    n_components = min(n_components, 6)  # Limit the number of components to 6 if it exceeds that number
     pca = PCA(n_components=n_components)
     pca.fit(df[numeric_cols])
     explained_var_ratio = pca.explained_variance_ratio_
     cumsum_var_ratio = np.cumsum(explained_var_ratio)
     result_dict = {
         'Cumulative Explained Variance Ratio': cumsum_var_ratio.tolist()}
-    result_dict['Principal Component'] = list(
-        range(1, len(explained_var_ratio)+1))
+    result_dict['Principal Component'] = list(range(1, len(explained_var_ratio) + 1))
     return result_dict
 
 
@@ -526,6 +505,3 @@ def set_to_list(data):
     if isinstance(data, np.int64):
         return int(data)
     return data
-
-df = pd.read_csv('/home/firengiz/Belgeler/proje/automl/Iris.csv')
-print(analysis(df, target='Species'))
