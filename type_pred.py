@@ -12,7 +12,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
 warnings.filterwarnings('ignore')
-
+import matplotlib.pyplot as plt
+import scipy.stats
 
 #CLASS MODEL
 class KolonTipiTahmini1:
@@ -186,22 +187,19 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
                 high_corr_target.append(col)
 
 # In this code, the suitability of different probability distribution functions for a dataset is tested.
-# ===========================================================================================
-    for col in df:
+# ==========================================================================================
+    result_dict = {}
+    distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
+                    'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'dweibull']  # Kullanılacak dağılımların listesi oluşturulur.
+    for col in df.columns:
         try:  # Start an error handling block for each column
-            # Define a lambda function to check if all rows are integers to determine if the column is of integer type, and apply it to the entire column using the apply() method. The results are checked with the all() method and assigned to the is_int variable.
             is_int = df[col].apply(lambda x: x.is_integer()).all()
             if is_int:
-                # If all rows are integers, the data type of the column is changed to 'int'.
                 df[col] = df[col].astype("int")
                 print(df.info())
         except:
             pass  # If an error occurs, continue to the next column.
 
-    result_dict = {}
-    distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
-                     'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'weibull']  # Kullanılacak dağılımların listesi oluşturulur.
-    for col in df.columns:
         if df[col].nunique() <= 20:
             df[col] = LabelEncoder().fit_transform(df[col])
 
@@ -219,7 +217,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
                     continue
 
                 if best_dist == 'weibull_min' or best_dist == 'weibull_max':
-                    best_dist = 'weibull'
+                    best_dist = 'dweibull'
                 elif best_dist == 'lognormvariate':
                     best_dist = 'lognorm'
                 elif best_dist == 'norm':
@@ -227,32 +225,49 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
                 result_dict[col] = best_dist
 
+    for col, dist in result_dict.items():
+        plt.figure()
+        df_sampled[col].plot(kind='hist', bins=50, density=True, alpha=0.5)
+        x = np.linspace(df_sampled[col].min(), df_sampled[col].max(), 100)  # x değerlerini oluşturun
+        x = np.tile(x, len(df_sampled[col]) // 100 + 1)[:len(df_sampled[col])]  # x dizisini genişletin
+        if dist == 'norm':
+            loc, scale = scipy.stats.norm.fit(df_sampled[col])
+            y = scipy.stats.norm(loc=loc, scale=scale).pdf(x)  # y değerlerini oluşturun
+        elif dist == 'beta':
+            a, b, loc, scale = scipy.stats.beta.fit(df_sampled[col])
+            y = scipy.stats.beta(a=a, b=b, loc=loc, scale=scale).pdf(x)  # y değerlerini oluşturun
+        else:
+            y = getattr(scipy.stats, dist).pdf(x, df_sampled[col])  # y değerlerini oluşturun
+        plt.plot(x, y, label=dist)  # çizimi yapın
+        plt.xlabel(col)
+        plt.legend()
+        plt.show()
+
+
+
+
+
 # Determining the Problem Type and Metrics
 # ======================================
     if target:
         problem_type = None  # The problem_type variable is initially set to None
-        metrics = None  # The metrics variable is initially set to None
 
         # If the number of columns in the dataset is greater than 5 and the data type of the target variable is int64 or float64, and the number of unique values in the target variable is greater than 20, assign 'scoring' to the problem_type variable
         if len(df.columns) > 5 and df[target].dtype in ['int64', 'float64'] and df[target].nunique() > 20:
             problem_type = 'scoring'
-            metrics = ['r2_score', 'mean_absolute_error', 'mean_squared_error']
         elif df[target].nunique() == 2:  # If the number of unique values in the target variable is 2
             min_count = df[target].value_counts().min()
             # If the number of classes of the target variable is less than 1% of the sample size:
             if min_count < 0.01 * len(df):
                 # Assign 'anomaly detection' to the problem_type variable.
                 problem_type = 'anomaly detection'
-                metrics = ['precision_score', 'recall_score', 'f1_score']
             else:
                 # Otherwise, assign 'binary classification' to the problem_type variable.
                 problem_type = 'binary classification'
-                metrics = ['f1_score', 'precision_score', 'recall_score']
         # If the number of unique values in the target variable is between 2 and 20:
         elif 2 < df[target].nunique() < 20:
             # Assign 'multi-class classification' to the problem_type variable.
             problem_type = 'multi-class classification'
-            metrics = ['accuracy_score', 'precision_score', 'recall_score']
         # If the number of columns in the dataset is less than 5:
         elif len(df.columns) < 5:
             for col in df:
@@ -270,12 +285,11 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
             elif len(df.columns) < 5 and len([col for col in df.columns if isinstance(df[col], "int")]) == 2 or any(re.search(r'(id|ID|Id|iD>|ıd)', col) for col in df.columns):
                 # Assign 'recommendation' to the problem_type variable.
                 problem_type = 'recommendation'
-                metrics = ['recall_score', 'precision_score', 'map_score']
 
 
         # If the problem_type variable is assigned, it is stored as a dictionary in the format {'problem_type': problem_type, 'metrics': metrics}.
         if problem_type is not None:
-            problem_type = {'problem_type': problem_type, 'metrics': metrics}
+            problem_type = {'problem_type': problem_type}
 
 # When the target is active, this code block checks for NaN values, sparse values, and unique values. It also checks for high correlation among numerical columns. If the warning variable is True, it removes the warning columns.
 # =======================================================================================================================================================================================================
@@ -307,20 +321,16 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
        
                 
-                if null_ratio > 0:
-                    if len(ratio_str) > 0:
+                if null_ratio > 0.1:
+                    if len(ratio_str) > 0.1:
                         ratio_str += ", "
                     ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                
-                if zero_ratio > 0.70 and null_ratio > 0.1:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "space:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100,null_ratio * 100)
 
-                if zero_ratio > 0.70:
+
+                if zero_ratio > 0.30:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "space:{:.2f}% ".format(zero_ratio * 100)
+                    ratio_str += "space:{:.2f}%".format(zero_ratio * 100)
                 
                 if unique_ratio > 0.80:
                     if len(ratio_str) > 0:
@@ -431,22 +441,19 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
                 ratio_str = ""
 
-       
-                
-                if null_ratio > 0:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                
                 if zero_ratio > 0.70 and null_ratio > 0.1:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "space:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100,null_ratio * 100)
-
-                if zero_ratio > 0.70:
+                    ratio_str += "space:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100, null_ratio * 100)
+                elif null_ratio > 0.1:
                     if len(ratio_str) > 0:
                         ratio_str += ", "
-                    ratio_str += "space:{:.2f}% ".format(zero_ratio * 100)
+                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
+                elif zero_ratio > 0.70:
+                    if len(ratio_str) > 0:
+                        ratio_str += ", "
+                    ratio_str += "space:{:.2f}%".format(zero_ratio * 100)
+
                 
                 if unique_ratio > 0.80:
                     if len(ratio_str) > 0:
@@ -489,7 +496,7 @@ def calculate_pca(df, comp_ratio=0.95, target=None):
     explained_var_ratio = pca.explained_variance_ratio_
     cumsum_var_ratio = np.cumsum(explained_var_ratio)
     result_dict = {
-        'Cumulative Explained Variance Ratio': cumsum_var_ratio.tolist()}
+        'Cumulative Explained Variance Ratio': np.round(cumsum_var_ratio, 2).tolist()}
     result_dict['Principal Component'] = list(range(1, len(explained_var_ratio) + 1))
     return result_dict
 
@@ -505,3 +512,4 @@ def set_to_list(data):
     if isinstance(data, np.int64):
         return int(data)
     return data
+
