@@ -18,26 +18,27 @@ from prep_tools import fill_na, get_Date_Column
 # df = pd.read_csv('train.csv')
 # df = pd.read_csv('Salary_Data.csv')
 # df = pd.read_csv('Ratings.csv')
-
 def preprocess(df):
-    kt = KolonTipiTahmini1()  
+    kt = KolonTipiTahmini1()
 
     data_dict = {}
-    delete_cols = []  
+    delete_cols = []
 
     if len(df) > 5000:
         df = df.sample(n=5000)
 
     for col in df.columns:
-        data_dict[col] = kt.fit_transform(df[[col]])[col]
+        try:
+            data_dict[col] = kt.fit_transform(df[[col]])[col]
+        except KeyError:
+            continue
 
-        if data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date":
-            delete_cols.append(col)  
+        if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
+            delete_cols.append(col)
 
     print("DELETED COLUMNS: ", delete_cols)
-    df = df.drop(columns=delete_cols)  
+    df = df.drop(columns=delete_cols)
     return df
-
 
 #df = preprocess(df)
 #print(df)
@@ -94,7 +95,8 @@ def get_problem_type(df, target=None):
         "cv": 5,
         "target": target,
         "models": ["IsolationForest", "OneClassSVM", "EllipticEnvelope"],
-        "metrics": ['accuracy', 'precision_macro', 'f1_macro']
+        "metrics": ['accuracy', 'precision_macro', 'f1_macro'],
+        "comp_ratio": 0.95
     }
 
 
@@ -107,17 +109,21 @@ def get_problem_type(df, target=None):
             if df[col].isnull().sum() / len(df) > 0.5:
                 df.drop(col, axis=1, inplace=True)
             elif 0.05 <= df[col].isnull().sum() / len(df) <= 0.5:
+                print(df.info())
                 df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
+                print(df.info())
             else:
                 median_value = df[col].median()
+                print(df.info())
                 df[col].fillna(median_value, inplace=True)
-
+                print(df.info())
+    problem_type = None
     if target is not None:
         if len(numeric_columns) > 0:
             if df[target].nunique() == 2:
                 min_count = df[target].value_counts().min()
                 if min_count < 0.01 * len(df):
-                    problem_type = "anomaly detection"
+                    problem_type = "anomaly_detection"
                     print("Anomaly Detection Confirmed")
                 else:
                     problem_type = "binary classification"
@@ -224,8 +230,8 @@ def create_model(df, problem_type=None, params=[]):
 
     elif problem_type == "anomaly_detection":
         print("Problem Type : Anomaly Detection")
-        # print("params : ", anomal_params)
-        # result = anomaly_detection(df, **anomal_params)
+        print("params : ", params)
+        result = anomaly_detection(df, **params[0])
 
     elif problem_type == "clustering":
         print("params : ", params)
@@ -236,6 +242,7 @@ def create_model(df, problem_type=None, params=[]):
         result = None
 
     return result
+
 # print(create_model(df, target='Salary')) # Salary_Data.csv
 # print(create_model(df, date='DATE', target='Value')) # time2.csv
 #print(create_model(df))  Online_Retail.xlsx
