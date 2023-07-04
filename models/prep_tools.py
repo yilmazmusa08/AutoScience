@@ -7,7 +7,7 @@
 # import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
-# import numpy as np
+import numpy as np
 import seaborn as sns
 # from sklearn.preprocessing import StandardScaler
 # from sklearn.tree import DecisionTreeClassifier,export_graphviz, export_text
@@ -18,6 +18,9 @@ from scipy.stats import shapiro, levene, ttest_ind
 # from statsmodels.stats.proportion import proportions_ztest
 # from skompiler import skompile
 # import graphviz
+import scipy.stats
+from sklearn.preprocessing import LabelEncoder
+from fitter import Fitter
 
 def describe_dataframe(df):
     """
@@ -226,6 +229,104 @@ def get_Date_Column(DataFrame) -> pd.DataFrame:
 
     return DataFrame
 
+def generate_warning_list(df):
+    warning_list = []
+
+    for col in df.columns:
+        if df[col].dtype == "int64" or df[col].dtype == "float64":
+            null_values = df[col].isna().sum()
+            zero_values = (df[col] == 0).sum()
+            total_values = len(df[col])
+            null_ratio = int(null_values) / total_values
+            zero_ratio = int(zero_values) / total_values
+            unique_ratio = len(df[col].unique()) / total_values
+
+
+            if null_ratio > 0.1:
+                ratio_str = "NaN Rate : {:.2f}%".format(null_ratio * 100)
+                column = "Column : " + str(col)
+                warning_list.append([column, ratio_str])
+
+            if zero_ratio > 0.30:
+                ratio_str = "Sparsity Rate : {:.2f}%".format(zero_ratio * 100)
+                column = "Column : " + str(col)
+                warning_list.append([col, ratio_str])
+
+            if unique_ratio > 0.80:
+                ratio_str = "Unique Rate : {:.2f}%".format(unique_ratio * 100)
+                column = "Column : " + str(col)
+                warning_list.append([col, ratio_str])
+
+    if len(warning_list) == 0:
+        warning_list.append(["No Warning Exist"])
+
+    return warning_list
+
+
+def analyze_and_plot_distributions(df):
+    result_dict = {}
+    distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
+                    'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'dweibull']
+
+    for col in df.columns:
+        try:
+            is_int = df[col].apply(lambda x: x.is_integer()).all()
+            if is_int:
+                df[col] = df[col].astype("int")
+                print(df.info())
+        except:
+            pass
+
+        if df[col].nunique() <= 20:
+            df[col] = LabelEncoder().fit_transform(df[col])
+
+        if df[col].dtype == 'int64' or df[col].dtype == 'float64':
+            if len(df) >= 5000:
+                df_sampled = df.sample(n=5000, random_state=42)
+            else:
+                df_sampled = df
+            f = Fitter(df_sampled[col], distributions=distributions)
+            f.fit()
+            if len(f.df_errors) > 0:
+                try:
+                    best_dist = list(f.get_best().keys())[0]
+                except KeyError:
+                    continue
+
+                if best_dist == 'weibull_min' or best_dist == 'weibull_max':
+                    best_dist = 'dweibull'
+                elif best_dist == 'lognormvariate':
+                    best_dist = 'lognorm'
+                elif best_dist == 'norm':
+                    best_dist = 'gauss'
+
+                result_dict[col] = best_dist
+
+    plot_results = {}
+
+    for col, dist in result_dict.items():
+        plt.figure()
+        df_sampled[col].plot(kind='hist', bins=50, density=True, alpha=0.5)
+        x = np.linspace(df_sampled[col].min(), df_sampled[col].max(), 100)
+        x = np.tile(x, len(df_sampled[col]) // 100 + 1)[:len(df_sampled[col])]
+
+        if dist == 'norm':
+            loc, scale = scipy.stats.norm.fit(df_sampled[col])
+            y = scipy.stats.norm(loc=loc, scale=scale).pdf(x)
+        elif dist == 'beta':
+            a, b, loc, scale = scipy.stats.beta.fit(df_sampled[col])
+            y = scipy.stats.beta(a=a, b=b, loc=loc, scale=scale).pdf(x)
+        else:
+            y = getattr(scipy.stats, dist).pdf(x, df_sampled[col])
+
+        plt.plot(x, y, label=dist)
+        plt.xlabel(col)
+        plt.legend()
+
+        plot_results[col] = (x, y)
+
+    return plot_results, result_dict
+
 
 def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
     quartile1 = dataframe[col_name].quantile(q1)
@@ -234,6 +335,7 @@ def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
     up_limit = quartile3 + 1.5 * interquantile_range
     low_limit = quartile1 - 1.5 * interquantile_range
     return low_limit, up_limit
+
 
 def replace_with_thresholds(dataframe, variable):
     low_limit, up_limit = outlier_thresholds(dataframe, variable)
