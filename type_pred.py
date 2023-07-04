@@ -14,6 +14,7 @@ warnings.filterwarnings('ignore', category=ConvergenceWarning)
 warnings.filterwarnings('ignore')
 import matplotlib.pyplot as plt
 import scipy.stats
+from models.prep_tools import generate_warning_list, analyze_and_plot_distributions
 
 #CLASS MODEL
 class KolonTipiTahmini1:
@@ -69,13 +70,13 @@ class KolonTipiTahmini1:
                 else:
                     kolon_role.append('numeric')
             elif isinstance(data[col].iloc[0], str) and len(data[col].unique()) >= 0.9*len(data) and data[col].str.split().str.len().mean()<5:
-                kolon_role.append('indentifier')     
+                kolon_role.append('identifier')     
             elif len(data[col].unique()) > self.threshold and (all(isinstance(val, int) for val in data[col]) or all(isinstance(val, float) for val in data[col])):
                 kolon_role.append('numeric')
             elif len(data[col].unique()) < self.threshold:
                 kolon_role.append('categoric')
             else:
-                kolon_role.append("indentifier")
+                kolon_role.append("identifier")
 
         if 'date' in kolon_role:
             date_cols=[col for col, role in zip(data.columns, kolon_role) if role == 'date']
@@ -138,6 +139,7 @@ class KolonTipiTahmini1:
             col_name=d.pop('col_name')
             result[col_name]=d
         return result
+    
 
 def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     """
@@ -188,63 +190,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
 # In this code, the suitability of different probability distribution functions for a dataset is tested.
 # ==========================================================================================
-    result_dict = {}
-    distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
-                    'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'dweibull']  # Kullanılacak dağılımların listesi oluşturulur.
-    for col in df.columns:
-        try:  # Start an error handling block for each column
-            is_int = df[col].apply(lambda x: x.is_integer()).all()
-            if is_int:
-                df[col] = df[col].astype("int")
-                print(df.info())
-        except:
-            pass  # If an error occurs, continue to the next column.
-
-        if df[col].nunique() <= 20:
-            df[col] = LabelEncoder().fit_transform(df[col])
-
-        if df[col].dtype == 'int64' or df[col].dtype == 'float64':
-            if len(df) >= 5000:
-                df_sampled = df.sample(n=5000, random_state=42)
-            else:
-                df_sampled = df
-            f = Fitter(df_sampled[col], distributions=distributions)
-            f.fit()
-            if len(f.df_errors) > 0:
-                try:
-                    best_dist = list(f.get_best().keys())[0]
-                except KeyError:
-                    continue
-
-                if best_dist == 'weibull_min' or best_dist == 'weibull_max':
-                    best_dist = 'dweibull'
-                elif best_dist == 'lognormvariate':
-                    best_dist = 'lognorm'
-                elif best_dist == 'norm':
-                    best_dist = 'gauss'
-
-                result_dict[col] = best_dist
-
-    for col, dist in result_dict.items():
-        plt.figure()
-        df_sampled[col].plot(kind='hist', bins=50, density=True, alpha=0.5)
-        x = np.linspace(df_sampled[col].min(), df_sampled[col].max(), 100)  # x değerlerini oluşturun
-        x = np.tile(x, len(df_sampled[col]) // 100 + 1)[:len(df_sampled[col])]  # x dizisini genişletin
-        if dist == 'norm':
-            loc, scale = scipy.stats.norm.fit(df_sampled[col])
-            y = scipy.stats.norm(loc=loc, scale=scale).pdf(x)  # y değerlerini oluşturun
-        elif dist == 'beta':
-            a, b, loc, scale = scipy.stats.beta.fit(df_sampled[col])
-            y = scipy.stats.beta(a=a, b=b, loc=loc, scale=scale).pdf(x)  # y değerlerini oluşturun
-        else:
-            y = getattr(scipy.stats, dist).pdf(x, df_sampled[col])  # y değerlerini oluşturun
-        plt.plot(x, y, label=dist)  # çizimi yapın
-        plt.xlabel(col)
-        plt.legend()
-        plt.show()
-
-
-
+    plots, result_dict = analyze_and_plot_distributions(df)
 
 
 # Determining the Problem Type and Metrics
@@ -254,20 +200,20 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
         # If the number of columns in the dataset is greater than 5 and the data type of the target variable is int64 or float64, and the number of unique values in the target variable is greater than 20, assign 'scoring' to the problem_type variable
         if len(df.columns) > 5 and df[target].dtype in ['int64', 'float64'] and df[target].nunique() > 20:
-            problem_type = 'scoring'
+            problem_type = 'Scoring'
         elif df[target].nunique() == 2:  # If the number of unique values in the target variable is 2
             min_count = df[target].value_counts().min()
             # If the number of classes of the target variable is less than 1% of the sample size:
             if min_count < 0.01 * len(df):
                 # Assign 'anomaly detection' to the problem_type variable.
-                problem_type = 'anomaly detection'
+                problem_type = 'Anomaly Detection'
             else:
                 # Otherwise, assign 'binary classification' to the problem_type variable.
-                problem_type = 'binary classification'
+                problem_type = 'Binary Classification'
         # If the number of unique values in the target variable is between 2 and 20:
         elif 2 < df[target].nunique() < 20:
             # Assign 'multi-class classification' to the problem_type variable.
-            problem_type = 'multi-class classification'
+            problem_type = 'Multi-Class Classification'
         # If the number of columns in the dataset is less than 5:
         elif len(df.columns) < 5:
             for col in df:
@@ -280,16 +226,16 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
                         pass
             if any(df[col].dtype == 'datetime64[ns]' for col in df.columns):
                 # Assign 'time series' to the problem_type variable.
-                problem_type = 'time series'
+                problem_type = 'Time Series'
                 metrics = ['mae', 'mse', 'rmse']
             elif len(df.columns) < 5 and len([col for col in df.columns if isinstance(df[col], "int")]) == 2 or any(re.search(r'(id|ID|Id|iD>|ıd)', col) for col in df.columns):
                 # Assign 'recommendation' to the problem_type variable.
-                problem_type = 'recommendation'
+                problem_type = 'Recommendation'
 
 
         # If the problem_type variable is assigned, it is stored as a dictionary in the format {'problem_type': problem_type, 'metrics': metrics}.
         if problem_type is not None:
-            problem_type = {'problem_type': problem_type}
+            problem_type = {'Problem Type': problem_type}
 
 # When the target is active, this code block checks for NaN values, sparse values, and unique values. It also checks for high correlation among numerical columns. If the warning variable is True, it removes the warning columns.
 # =======================================================================================================================================================================================================
@@ -298,7 +244,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         korelasyonlar = {}
         if isinstance(target, int):
             corr_matrix = df[numeric_columns].corr()[[target]]
-            print('corr_matrix', corr_matrix)
+            print('Correlation Matrix', corr_matrix)
             corr_matrix = corr_matrix.drop(target)
             kolonlar = list(corr_matrix.index)
             for i in range(len(kolonlar)):
@@ -306,45 +252,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         else:
             pass
 
-        warning_list = []
-
-        for col in df.columns:
-            if df[col].dtype == "int64" or df[col].dtype == "float64":
-                null_values = df[col].isna().sum()
-                zero_values = (df[col] == 0).sum()
-                total_values = len(df[col])
-                null_ratio = null_values / total_values
-                zero_ratio = zero_values / total_values
-                unique_ratio = len(df[col].unique()) / total_values
-
-                ratio_str = ""
-
-       
-                
-                if null_ratio > 0.1:
-                    if len(ratio_str) > 0.1:
-                        ratio_str += ", "
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-
-
-                if zero_ratio > 0.30:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "space:{:.2f}%".format(zero_ratio * 100)
-                
-                if unique_ratio > 0.80:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
-
-
-
-                if ratio_str:
-                    warning_list.append([col, ratio_str])
-
-        if not warning_list:
-            warning_list.append(["no warning"])
-
+        warning_list = generate_warning_list(df)
 
 
 # When the target is active, feature selection (feature importance) is performed using the target variable in the dataset.
@@ -393,29 +301,29 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
             if target and len(feature_importance) >= 2:
                 result = {
-                    "Role": data_dict,
-                    "warning_list": warning_list,
-                    "distributions": result_dict,
-                    "high_corr_target": high_corr_target,
-                    "feature_importance": {k: f"{v}%" for k, v in feature_importance.items()},
-                    "problem_type": problem_type
+                    "Column Roles": data_dict,
+                    "Warnings": warning_list,
+                    "Distributions": result_dict,
+                    "High Correlation with Target": high_corr_target,
+                    "Feature Importance": {k: f"{v}%" for k, v in feature_importance.items()},
+                    "Problem Type": problem_type
                 }
             else:
                 result = {
-                    "Role": data_dict,
-                    "warning_list": warning_list,
-                    "distributions": result_dict,
-                    "high_corr_target": high_corr_target,
-                    "problem_type": problem_type
+                    "Column Roles": data_dict,
+                    "Warnings": warning_list,
+                    "Distributions": result_dict,
+                    "High Correlation with Target": high_corr_target,
+                    "Problem Type": problem_type
         
                 }
         else:
             result = {
-                "Role": data_dict,
-                "warning_list": warning_list,
-                "distributions": result_dict,
-                "high_corr_target": high_corr_target,
-                "problem_type": problem_type
+                "Column Roles": data_dict,
+                "Warnings": warning_list,
+                "Distributions": result_dict,
+                "High Correlation with Target": high_corr_target,
+                "Problem Type": problem_type
                 
             }
 
@@ -425,50 +333,18 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 # If the target is not active or warning is None, a warning calculation is performed.
 # ==================================================================================================================
     if target is None:
-        clustering = 'clustering'
+        clustering = 'Clustering'
         clustering = {clustering}
-        warning_list = []
         problem_type = {}
+        warning_list = generate_warning_list(df)
 
-        for col in df.columns:
-            if df[col].dtype == "int64" or df[col].dtype == "float64":
-                null_values = df[col].isna().sum()
-                zero_values = (df[col] == 0).sum()
-                total_values = len(df[col])
-                null_ratio = null_values / total_values
-                zero_ratio = zero_values / total_values
-                unique_ratio = len(df[col].unique()) / total_values
-
-                ratio_str = ""
-
-                if zero_ratio > 0.70 and null_ratio > 0.1:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "space:{:.2f}% , NaN:{:.2f}%".format(zero_ratio * 100, null_ratio * 100)
-                elif null_ratio > 0.1:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "NaN:{:.2f}%".format(null_ratio * 100)
-                elif zero_ratio > 0.70:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "space:{:.2f}%".format(zero_ratio * 100)
-
-                
-                if unique_ratio > 0.80:
-                    if len(ratio_str) > 0:
-                        ratio_str += ", "
-                    ratio_str += "unique:{:.2f}%".format(unique_ratio * 100)
-
-        if not warning_list:
-            warning_list.append(["no warning"])
     
     if target is None:
         result = {
-            "Role": data_dict,
-            "warning_list": warning_list,
-            "distributions": result_dict,
-            "problem_type": clustering}
+            "Column Roles": data_dict,
+            "Warnings": warning_list,
+            "Distributions": result_dict,
+            "Problem Type": clustering}
         return result
     
 ################################################################################################
