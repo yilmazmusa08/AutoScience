@@ -25,6 +25,7 @@ warnings.filterwarnings('ignore')
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
+import tempfile
 
 path = "./models"
 sys.path.append(path)
@@ -219,24 +220,49 @@ def model(request: Request):
         return RedirectResponse(url="/", status_code=302)
 
 
+# Define a global variable to store the uploaded file
+uploaded_file = None
 
 @app.post("/analysis", response_class=HTMLResponse)
 async def run_analysis_api(
     request: Request,
     file: UploadFile = File(...),
-    target: str = Form(...),
     current_user: User = Depends(get_current_user)
 ):
     print("Access token found:", current_user.email)
 
+    global uploaded_file
     try:
-        df = pd.read_csv(file.file)
-        print(df)
+        # Store the uploaded file in a temporary location
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(file.file.read())
+            uploaded_file = tmp.name
+        
+        df = pd.read_csv(uploaded_file)
+        columns = df.columns.tolist()
+
+        return templates.TemplateResponse("analysis.html", {"request": request, "columns": columns})
+    
+    except Exception as e:
+        traceback.print_exc()
+        return f"Error occurred while processing the file: {str(e)}"
+    
+
+@app.post("/run_analysis", response_class=HTMLResponse)
+async def run_analysis(
+    request: Request,
+    target: str = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        global uploaded_file
+
+        df = pd.read_csv(uploaded_file)
 
         output = analysis(df=df, target=target)
 
         pca_dict = {}
-        for col in output['Column Roles']:
+        for col in output['Role']:
             null_counts = df.isnull().sum()
             empty_cols = null_counts[null_counts >= len(df) * 0.6].index
             df.drop(empty_cols, axis=1, inplace=True)
@@ -255,12 +281,12 @@ async def run_analysis_api(
                 'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
                 'Principal Component': result_dict['Principal Component']
             }
-      
+
         output['PCA'] = pca_dict
         output = set_to_list(output)
         output_analysis = {"Results": output}
 
-        # After analysis, store the output in a JSON file (output.json in this example)
+        # After analysis, store the output in a JSON file (analysis.json in this example)
         with open("analysis.json", "w") as f:
             json.dump(output_analysis, f)
 
@@ -269,7 +295,7 @@ async def run_analysis_api(
     
     except Exception as e:
         traceback.print_exc()
-        return f"Dataset is not excepted, an error occurred : {str(e)}"
+        return f"Error occurred during analysis: {str(e)}"
 
 
 @app.get("/result_analysis", response_class=HTMLResponse)
