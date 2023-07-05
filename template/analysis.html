@@ -95,27 +95,45 @@
     </div>
     <!-- /.sidebar -->
   </aside>
-  <!-- Content Wrapper. Contains page content -->
-  <div class="content-wrapper">
-<!-- Choose a File Button -->
-<div class="row">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-body">
-        <form action="/analysis" method="post" enctype="multipart/form-data">
-          <input type="file" id="file-input" name="file">
-          <label for="file-input" class="btn btn-primary">Choose a File</label>
-          <span id="file-name"></span>
-          <input type="submit" value="Upload">
-          <input type="text" name="target" placeholder="Target">
-          <input type="checkbox" name="warning" checked> Warning
-          <input type="checkbox" name="return_stats"> Return Statistics
-          <input type="number" name="comp_ratio" step="0.1" min="0.0" max="1.0" value="1.0">
-        </form>
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <form action="/analysis" method="post" enctype="multipart/form-data">
+            <input type="file" id="file-input" name="file">
+            <label for="file-input" class="btn btn-primary">Upload Your Dataset</label>
+            <input type="submit" value="Upload">
+          </form>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  {% if columns %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <form action="/run_analysis" method="post">
+            <label for="target-select">Choose Target Column:</label>
+            <select id="target-select" name="target">
+              {% for column in columns %}
+              <option value="{{ column }}">{{ column }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="file" value="{{ uploaded_file }}">
+            <input type="submit" value="Run Analysis">
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  </div>
+
+    
 
   
     </div>
@@ -177,9 +195,6 @@
       </div><!--/. container-fluid -->
     </section>
     <!-- /.content -->
-  </div>
-  <!-- /.content-wrapper -->
-  <!-- Eklemek istediğiniz kod -->
 
     
   <!-- Control Sidebar -->
