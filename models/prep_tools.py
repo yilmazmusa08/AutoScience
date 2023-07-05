@@ -250,12 +250,12 @@ def generate_warning_list(df):
             if zero_ratio > 0.30:
                 ratio_str = "Sparsity Rate : {:.2f}%".format(zero_ratio * 100)
                 column = "Column : " + str(col)
-                warning_list.append([col, ratio_str])
+                warning_list.append([column, ratio_str])
 
             if unique_ratio > 0.80:
                 ratio_str = "Unique Rate : {:.2f}%".format(unique_ratio * 100)
                 column = "Column : " + str(col)
-                warning_list.append([col, ratio_str])
+                warning_list.append([column, ratio_str])
 
     if len(warning_list) == 0:
         warning_list.append(["No Warning Exist"])
@@ -273,7 +273,6 @@ def analyze_and_plot_distributions(df):
             is_int = df[col].apply(lambda x: x.is_integer()).all()
             if is_int:
                 df[col] = df[col].astype("int")
-                print(df.info())
         except:
             pass
 
