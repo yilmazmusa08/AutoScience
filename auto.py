@@ -5,16 +5,11 @@ import uvicorn
 import warnings
 import traceback
 import pandas as pd
-from fastapi import FastAPI, File, UploadFile
-from sklearn.exceptions import ConvergenceWarning
-from fastapi import FastAPI, Form, Request, Cookie
-from type_pred import *
+from fastapi import FastAPI, File, UploadFile, Form, Request, Request, Depends, HTTPException
 from sklearn.exceptions import ConvergenceWarning
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
-from fastapi import HTTPException
 from fastapi_login import LoginManager
-from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -29,7 +24,7 @@ import tempfile
 
 path = "./models"
 sys.path.append(path)
-from init import preprocess, get_problem_type, create_model
+from init import *
 
 app = FastAPI()
 
@@ -262,7 +257,7 @@ async def run_analysis(
         output = analysis(df=df, target=target)
 
         pca_dict = {}
-        for col in output['Role']:
+        for col in output['Column Roles']:
             null_counts = df.isnull().sum()
             empty_cols = null_counts[null_counts >= len(df) * 0.6].index
             df.drop(empty_cols, axis=1, inplace=True)
