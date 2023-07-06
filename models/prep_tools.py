@@ -250,12 +250,12 @@ def generate_warning_list(df):
             if zero_ratio > 0.30:
                 ratio_str = "Sparsity Rate : {:.2f}%".format(zero_ratio * 100)
                 column = "Column : " + str(col)
-                warning_list.append([column, ratio_str])
+                warning_list.append([col, ratio_str])
 
             if unique_ratio > 0.80:
                 ratio_str = "Unique Rate : {:.2f}%".format(unique_ratio * 100)
                 column = "Column : " + str(col)
-                warning_list.append([column, ratio_str])
+                warning_list.append([col, ratio_str])
 
     if len(warning_list) == 0:
         warning_list.append(["No Warning Exist"])
@@ -265,7 +265,7 @@ def generate_warning_list(df):
 
 def analyze_and_plot_distributions(df):
     result_dict = {}
-    distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 't', 'laplace',
+    distributions = ['norm', 'uniform', 'binom', 'poisson', 'gamma', 'beta', 'lognorm', 'weibull_min', 'weibull_max', 'expon', 'pareto', 'cauchy', 'chi', 'f', 'laplace',
                     'bernoulli', 'exponential', 'geometric', 'hypergeometric', 'normal_mix', 'rayleigh', 'student_t', 'dweibull']
 
     for col in df.columns:
@@ -273,6 +273,7 @@ def analyze_and_plot_distributions(df):
             is_int = df[col].apply(lambda x: x.is_integer()).all()
             if is_int:
                 df[col] = df[col].astype("int")
+                print(df.info())
         except:
             pass
 
@@ -304,25 +305,32 @@ def analyze_and_plot_distributions(df):
     plot_results = {}
 
     for col, dist in result_dict.items():
-        plt.figure()
-        df_sampled[col].plot(kind='hist', bins=50, density=True, alpha=0.5)
-        x = np.linspace(df_sampled[col].min(), df_sampled[col].max(), 100)
-        x = np.tile(x, len(df_sampled[col]) // 100 + 1)[:len(df_sampled[col])]
+        try:
+            plt.figure()
+            df_sampled[col].plot(kind='hist', bins=50, density=True, alpha=0.5)
+            x = np.linspace(df_sampled[col].min(), df_sampled[col].max(), 100)
+            x = np.tile(x, len(df_sampled[col]) // 100 + 1)[:len(df_sampled[col])]
 
-        if dist == 'norm':
-            loc, scale = scipy.stats.norm.fit(df_sampled[col])
-            y = scipy.stats.norm(loc=loc, scale=scale).pdf(x)
-        elif dist == 'beta':
-            a, b, loc, scale = scipy.stats.beta.fit(df_sampled[col])
-            y = scipy.stats.beta(a=a, b=b, loc=loc, scale=scale).pdf(x)
-        else:
-            y = getattr(scipy.stats, dist).pdf(x, df_sampled[col])
+            if dist == 'norm':
+                loc, scale = scipy.stats.norm.fit(df_sampled[col])
+                y = scipy.stats.norm(loc=loc, scale=scale).pdf(x)
+            elif dist == 'beta':
+                a, b, loc, scale = scipy.stats.beta.fit(df_sampled[col])
+                y = scipy.stats.beta(a=a, b=b, loc=loc, scale=scale).pdf(x)
+            else:
+                if dist == 't':
+                    y = scipy.stats.t.pdf(x, df_sampled[col])
+                else:
+                    y = getattr(scipy.stats, dist).pdf(x)
 
-        plt.plot(x, y, label=dist)
-        plt.xlabel(col)
-        plt.legend()
+            plt.plot(x, y, label=dist)
+            plt.xlabel(col)
+            plt.legend()
 
-        plot_results[col] = (x, y)
+            plot_results[col] = (x, y)
+        except:
+            continue
+
 
     return plot_results, result_dict
 
