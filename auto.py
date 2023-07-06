@@ -258,69 +258,80 @@ async def run_analysis(
         output = analysis(df=df, target=target)
 
         if target is None:
+            output = analysis(df=df, target=None)
             pca_dict = {}
             for col in output['Column Roles']:
                 null_counts = df.isnull().sum()
                 empty_cols = null_counts[null_counts >= len(df) * 0.6].index
                 df.drop(empty_cols, axis=1, inplace=True)
+            
+            for col in df.columns:
+                if df[col].dtype == 'object' and df[col].nunique() < 20:
+                    df[col].fillna(df[col].mode()[0], inplace=True)
+                    le = LabelEncoder()
+                    df[col] = le.fit_transform(df[col])
+                    
 
-                for col in df.columns:
-                    if df[col].dtype == 'object' and df[col].nunique() < 20:
-                        df[col].fillna(df[col].mode()[0], inplace=True)
-                        le = LabelEncoder()
-                        df[col] = le.fit_transform(df[col])
-                    elif df[col].dtype != 'object':
-                        df[col].fillna(df[col].mean(), inplace=True)
-
-                df[col] = df[col].fillna(df[col].mean())
-                result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
-                pca_dict = {
-                    'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
-                    'Principal Component': result_dict['Principal Component']
-                }
+            numeric_columns = df.select_dtypes(include=['float', 'int']).columns
+            for col in numeric_columns:
+                df[col].fillna(df[col].mean(), inplace=True)
+            print(numeric_columns.isnull().sum())
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
+            pca_dict = {
+                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                'Principal Component': result_dict['Principal Component']
+            }
 
             output['PCA'] = pca_dict
             output = set_to_list(output)
             output_analysis = {"Results": output}
 
-            # After analysis, store the output in a JSON file (analysis.json in this example)
+            # Analiz sonrasında çıktıyı bir JSON dosyasına kaydet (örneğin, analysis.json)
             with open("analysis.json", "w") as f:
                 json.dump(output_analysis, f)
 
-            # Redirect to the result page
+            # Sonuç sayfasına yönlendir
             return RedirectResponse(url="/result_analysis", status_code=302)
+
+
         else:
-            pca_dict = {}
-            for col in output['Column Roles']:
-                null_counts = df.isnull().sum()
-                empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-                df.drop(empty_cols, axis=1, inplace=True)
+            if target:
+                output = analysis(df=df, target=target)
+                pca_dict = {}
+                for col in output['Column Roles']:
+                    null_counts = df.isnull().sum()
+                    empty_cols = null_counts[null_counts >= len(df) * 0.6].index
+                    df.drop(empty_cols, axis=1, inplace=True)
 
                 for col in df.columns:
                     if df[col].dtype == 'object' and df[col].nunique() < 20:
                         df[col].fillna(df[col].mode()[0], inplace=True)
                         le = LabelEncoder()
                         df[col] = le.fit_transform(df[col])
-                    elif df[col].dtype != 'object':
-                        df[col].fillna(df[col].mean(), inplace=True)
 
-                df[col] = df[col].fillna(df[col].mean())
+                numeric_columns = df.select_dtypes(include=['float', 'int']).columns
+                print(numeric_columns)
+                for col in numeric_columns:
+                    df[col].fillna(df[col].mean(), inplace=True)
+
                 result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
                 pca_dict = {
                     'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
                     'Principal Component': result_dict['Principal Component']
                 }
 
-            output['PCA'] = pca_dict
-            output = set_to_list(output)
-            output_analysis = {"Results": output}
+                output['PCA'] = pca_dict
+                output = set_to_list(output)
+                output_analysis = {"Results": output}
 
-            # After analysis, store the output in a JSON file (analysis.json in this example)
-            with open("analysis.json", "w") as f:
-                json.dump(output_analysis, f)
+                # Analiz sonrasında çıktıyı bir JSON dosyasına kaydet (örneğin, analysis.json)
+                with open("analysis.json", "w") as f:
+                    json.dump(output_analysis, f)
 
-            # Redirect to the result page
-            return RedirectResponse(url="/result_analysis", status_code=302)
+                # Sonuç sayfasına yönlendir
+                return RedirectResponse(url="/result_analysis", status_code=302)
+
+
             
     except Exception as e:
         traceback.print_exc()
