@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-
+from sklearn.preprocessing import LabelEncoder
 
 def dbscan(df, eps, min_samples):
     # Initialize labels array
@@ -29,12 +29,23 @@ def dbscan(df, eps, min_samples):
     return labels
 
 
+
+
 def get_neighbors(df, i, eps):
+    # Check if the number of unique values in each column is less than 20
+    for column in df.columns:
+        if df[column].nunique() < 20:
+            # Apply LabelEncoder to columns with less than 20 unique values
+            label_encoder = LabelEncoder()
+            df[column] = label_encoder.fit_transform(df[column])
+
     # Calculate Euclidean distance between the point i and all other points
-    distances = np.linalg.norm(df - df.iloc[i], axis=1)
+    numeric_df = df.select_dtypes(include=np.number)  # Select only numeric columns
+    distances = np.linalg.norm(numeric_df - numeric_df.iloc[i], axis=1)
 
     # Return indices of points within epsilon distance
     return np.where(distances <= eps)[0]
+
 
 
 def expand_cluster(df, labels, i, neighbors, cluster_id, eps, min_samples):
@@ -58,9 +69,19 @@ def expand_cluster(df, labels, i, neighbors, cluster_id, eps, min_samples):
         labels[neighbor] = cluster_id
 
 def visualize_clusters(df, labels):
-    # Apply PCA to reduce the data to 2 components
+    df = df.dropna()
+    # Label encode columns with less than 20 unique values
+    label_encode_cols = df.select_dtypes(include='object').columns
+    for col in label_encode_cols:
+        unique_vals = df[col].nunique()
+        if unique_vals < 20:
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+
+    # Apply PCA to reduce the data to 2 components for numeric columns
+    numeric_cols = df.select_dtypes(include='number').columns
     pca = PCA(n_components=2)
-    components = pca.fit_transform(df)
+    numeric_components = pca.fit_transform(df[numeric_cols])
 
     # Retrieve unique cluster labels
     unique_labels = np.unique(labels)
@@ -75,7 +96,7 @@ def visualize_clusters(df, labels):
             color = 'k'
         
         # Select data points belonging to the current cluster
-        cluster_points = components[labels == label]
+        cluster_points = numeric_components[labels[:numeric_components.shape[0]] == label]
         
         # Plot the cluster points
         plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=color, label=label)
