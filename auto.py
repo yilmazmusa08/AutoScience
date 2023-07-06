@@ -218,6 +218,7 @@ def model(request: Request):
 # Define a global variable to store the uploaded file
 uploaded_file = None
 
+# Analysis Part
 @app.post("/analysis", response_class=HTMLResponse)
 async def run_analysis_api(
     request: Request,
@@ -246,7 +247,7 @@ async def run_analysis_api(
 @app.post("/run_analysis", response_class=HTMLResponse)
 async def run_analysis(
     request: Request,
-    target: str = Form(...),
+    target: str = Form(None),
     current_user: User = Depends(get_current_user)
 ):
     try:
@@ -256,38 +257,71 @@ async def run_analysis(
 
         output = analysis(df=df, target=target)
 
-        pca_dict = {}
-        for col in output['Column Roles']:
-            null_counts = df.isnull().sum()
-            empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-            df.drop(empty_cols, axis=1, inplace=True)
+        if target is None:
+            pca_dict = {}
+            for col in output['Column Roles']:
+                null_counts = df.isnull().sum()
+                empty_cols = null_counts[null_counts >= len(df) * 0.6].index
+                df.drop(empty_cols, axis=1, inplace=True)
 
-            for col in df.columns:
-                if df[col].dtype == 'object' and df[col].nunique() < 20:
-                    df[col].fillna(df[col].mode()[0], inplace=True)
-                    le = LabelEncoder()
-                    df[col] = le.fit_transform(df[col])
-                elif df[col].dtype != 'object':
-                    df[col].fillna(df[col].mean(), inplace=True)
+                for col in df.columns:
+                    if df[col].dtype == 'object' and df[col].nunique() < 20:
+                        df[col].fillna(df[col].mode()[0], inplace=True)
+                        le = LabelEncoder()
+                        df[col] = le.fit_transform(df[col])
+                    elif df[col].dtype != 'object':
+                        df[col].fillna(df[col].mean(), inplace=True)
 
-            df[col] = df[col].fillna(df[col].mean())
-            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
-            pca_dict = {
-                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
-                'Principal Component': result_dict['Principal Component']
-            }
+                df[col] = df[col].fillna(df[col].mean())
+                result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
+                pca_dict = {
+                    'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                    'Principal Component': result_dict['Principal Component']
+                }
 
-        output['PCA'] = pca_dict
-        output = set_to_list(output)
-        output_analysis = {"Results": output}
+            output['PCA'] = pca_dict
+            output = set_to_list(output)
+            output_analysis = {"Results": output}
 
-        # After analysis, store the output in a JSON file (analysis.json in this example)
-        with open("analysis.json", "w") as f:
-            json.dump(output_analysis, f)
+            # After analysis, store the output in a JSON file (analysis.json in this example)
+            with open("analysis.json", "w") as f:
+                json.dump(output_analysis, f)
 
-        # Redirect to the result page
-        return RedirectResponse(url="/result_analysis", status_code=302)
-    
+            # Redirect to the result page
+            return RedirectResponse(url="/result_analysis", status_code=302)
+        else:
+            pca_dict = {}
+            for col in output['Column Roles']:
+                null_counts = df.isnull().sum()
+                empty_cols = null_counts[null_counts >= len(df) * 0.6].index
+                df.drop(empty_cols, axis=1, inplace=True)
+
+                for col in df.columns:
+                    if df[col].dtype == 'object' and df[col].nunique() < 20:
+                        df[col].fillna(df[col].mode()[0], inplace=True)
+                        le = LabelEncoder()
+                        df[col] = le.fit_transform(df[col])
+                    elif df[col].dtype != 'object':
+                        df[col].fillna(df[col].mean(), inplace=True)
+
+                df[col] = df[col].fillna(df[col].mean())
+                result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
+                pca_dict = {
+                    'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                    'Principal Component': result_dict['Principal Component']
+                }
+
+            output['PCA'] = pca_dict
+            output = set_to_list(output)
+            output_analysis = {"Results": output}
+
+            # After analysis, store the output in a JSON file (analysis.json in this example)
+            with open("analysis.json", "w") as f:
+                json.dump(output_analysis, f)
+
+            # Redirect to the result page
+            return RedirectResponse(url="/result_analysis", status_code=302)
+            
     except Exception as e:
         traceback.print_exc()
         return f"Error occurred during analysis: {str(e)}"
@@ -303,33 +337,82 @@ async def show_result(request: Request):
         return templates.TemplateResponse("analysis.html", {"request": request, "result": json.dumps(output_analysis)})
     except Exception as e:
         return f"Error: {str(e)}"
+    
 
 
+# Model Part
 @app.post("/model", response_class=HTMLResponse)
-async def run_models(
+def run_model_api(
     request: Request,
     file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+    ):
+    print("Access token found:", current_user.email)
+
+    global uploaded_file
+    try:
+        # Store the uploaded file in a temporary location
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(file.file.read())
+            uploaded_file = tmp.name
+        
+        df = pd.read_csv(uploaded_file)
+        columns = df.columns.tolist()
+
+        return templates.TemplateResponse("model.html", {"request": request, "columns": columns})
+    
+    except Exception as e:
+        traceback.print_exc()
+        return f"Error occurred while processing the file: {str(e)}"
+
+
+@app.post("/run_models", response_class=HTMLResponse)
+async def run_models(
+    request: Request,
     target: str = Form(None),
     current_user: User = Depends(get_current_user)
 ):
     print("Access token found:", current_user.email)
 
     try:
-        df = pd.read_csv(file.file)
+        global uploaded_file
+
+        df = pd.read_csv(uploaded_file)
 
         df = preprocess(df)
+        if target is None:
 
-        problem_type, params = get_problem_type(df, target=target) # problem_type and params 
+            problem_type, params = get_problem_type(df, target=None) # problem_type and params 
 
-        output = create_model(df=df, problem_type=problem_type, params=params) 
+            output = create_model(df=df, problem_type=problem_type, params=params)
 
-        output_file = os.path.join(os.getcwd(), "model.json")
+            # Convert NumPy array to list
+            output = output.tolist() if isinstance(output, np.ndarray) else output
 
-        with open(output_file, "w") as f:
-            json.dump(output, f)
+            output_file = os.path.join(os.getcwd(), "model.json")
 
-        # Redirect to the '/model' endpoint
-        return RedirectResponse(url="/result_model", status_code=302)
+            with open(output_file, "w") as f:
+                json.dump(output, f)
+
+            # Redirect to the '/model' endpoint
+            return RedirectResponse(url="/result_model", status_code=302)
+
+        else:
+            problem_type, params = get_problem_type(df, target=target) # problem_type and params 
+
+            output = create_model(df=df, problem_type=problem_type, params=params)
+
+            # Convert NumPy array to list
+            output = output.tolist() if isinstance(output, np.ndarray) else output
+
+            output_file = os.path.join(os.getcwd(), "model.json")
+
+            with open(output_file, "w") as f:
+                json.dump(output, f)
+
+            # Redirect to the '/model' endpoint
+            return RedirectResponse(url="/result_model", status_code=302)
+
     
     except Exception as e:
         traceback.print_exc()
