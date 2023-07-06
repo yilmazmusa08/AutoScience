@@ -117,16 +117,15 @@
       <div class="card">
         <div class="card-body">
           <form action="/run_analysis" method="post">
-            <div class="form-group">
-              <label for="target-select">Choose Target Column:</label>
-              <select id="target-select" name="target" class="form-control">
-                {% for column in columns %}
-                <option value="{{ column }}">{{ column }}</option>
-                {% endfor %}
-              </select>
-            </div>
+            <label for="target-select">Choose Target Column:</label>
+            <select id="target-select" name="target">
+              <option value="">None</option>  <!-- Added None option -->
+              {% for column in columns %}
+              <option value="{{ column }}">{{ column }}</option>
+              {% endfor %}
+            </select>
             <input type="hidden" name="file" value="{{ uploaded_file }}">
-            <input type="submit" value="Run Analysis" class="btn btn-primary">
+            <input type="submit" value="Run Analysis">
           </form>
         </div>
       </div>

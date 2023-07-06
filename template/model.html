@@ -96,89 +96,91 @@
     <!-- /.sidebar -->
   </aside>
   <!-- Content Wrapper. Contains page content -->
-  <div class="content-wrapper">
-  <!-- Choose a File Button -->
-<!-- Choose a File Button -->
-<div class="row">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-body">
-        <form action="/model" method="post" enctype="multipart/form-data">
-          <input type="file" id="file-input" name="file">
-          <label for="file-input" class="btn btn-primary">Choose a File</label>
-          <span id="file-name"></span>
-          <input type="submit" value="Upload">
-          <input type="text" name="target" placeholder="Target">
-          <input type="text" name="date" placeholder="Date">
-        </form>
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <form action="/model" method="post" enctype="multipart/form-data">
+            <input type="file" id="file-input" name="file" accept=".csv, .xlsx" required>
+            <label for="file-input" class="btn btn-primary">Upload Your Dataset</label>
+            <input type="submit" value="Upload">
+          </form>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  {% if columns %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <form action="/run_models" method="post">
+            <label for="target-select">Choose Target Column:</label>
+            <select id="target-select" name="target">
+              <option value="">None</option>  <!-- Added None option -->
+              {% for column in columns %}
+              <option value="{{ column }}">{{ column }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="file" value="{{ uploaded_file }}">
+            <input type="submit" value="Run Models">
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   
-    </div>
-    <!-- /.content-header -->
-    <!-- Main content -->
-    <section class="content">
-      <div class="container-fluid">
-        <!-- Info boxes -->
-        <div class="row">
-          <div class="col-md-12">
-            <div class="card">
-              <div class="card-header">
-                <h5 class="card-title">Auto Vision</h5>
-
-                <div class="card-tools">
-                  <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                    <i class="fas fa-minus"></i>
-                  </button>
-
-                  <button type="button" class="btn btn-tool" data-card-widget="remove">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <!-- Info boxes -->
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title">Auto Vision</h5>
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <button type="button" class="btn btn-tool" data-card-widget="remove">
+                  <i class="fas fa-times"></i>
+                </button>
               </div>
-              <!-- /.card-header -->
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-8">
-                    <p class="text-center">
-                      <strong>Visual Output</strong>
-                    </p>
-                    <div class="chart">
-                      <!-- Sales Chart Canvas -->
-                      <canvas id="salesChart" height="180" style="height: 180px;"></canvas>
-                    </div>
-                    <!-- /.chart-responsive -->
-                  </div>
-                  <!-- /.col -->
-                  <div class="col-md-4">
-                    <p class="text-center">
-                      <strong>Output</strong>
-                      <pre style="color: white; height: 400px; overflow-y: auto; padding: 10px; white-space: pre-wrap;">{{ result }}</pre>
-                    </p>
-                  </div>
-                  <!-- /.col -->
-                </div>
-                <!-- /.row -->
-              </div>
-              <!-- ./card-body -->
-              <!-- /.card-footer -->
             </div>
-            <!-- /.card -->
+            <!-- /.card-header -->
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-8">
+                  <p class="text-center">
+                    <strong>Visual Output</strong>
+                  </p>
+                  <div class="chart">
+                    <!-- Sales Chart Canvas -->
+                    <canvas id="salesChart" height="180" style="height: 180px;"></canvas>
+                  </div>
+                  <!-- /.chart-responsive -->
+                </div>
+                <!-- /.col -->
+                <div class="col-md-4">
+                  <p class="text-center">
+                    <strong>Output</strong>
+                    <pre style="color: white; height: 400px; overflow-y: auto; padding: 10px; white-space: pre-wrap;">{{ result }}</pre>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <!-- /.col -->
         </div>
-        <!-- /.row -->
-        <!-- Main row -->
-        <!-- /.row -->
-      </div><!--/. container-fluid -->
-    </section>
-    <!-- /.content -->
-  </div>
-  <!-- /.content-wrapper -->
-  <!-- Eklemek istediğiniz kod -->
+      </div>
+    </div>
+  </section>
+</div>
 
     
   <!-- Control Sidebar -->
@@ -186,9 +188,6 @@
     <!-- Control sidebar content goes here -->
   </aside>
   <!-- /.control-sidebar -->
-
-</div>
-<!-- ./wrapper -->
 
 <!-- REQUIRED SCRIPTS -->
 <!-- jQuery -->
