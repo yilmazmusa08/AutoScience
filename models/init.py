@@ -162,12 +162,16 @@ def get_problem_type(df, target=None):
                     # print("Recommendation Confirmed")
                 else:
                     problem_type = "scoring"
-                    # print("Regression Confirmed")
+                    # print("Scoring Confirmed")
+            else:
+                problem_type = "scoring"
+                # print("Scoring Confirmed")
         else:
             problem_type = None
     else:
         problem_type = "clustering"
         # print("Clustering Confirmed")
+
 
 
     if problem_type == "binary classification":
@@ -311,49 +315,6 @@ class KolonTipiTahmini1:
             for date_col in date_cols:
                 col_idx=data.columns.get_loc(date_col)
                 kolon_role[col_idx]='date'
-        # If the column values are datetime, it will display the format in which they are stored.
-        def get_Date_Format(data) -> str:
-            if not isinstance(data, pd.DataFrame):
-                dataframe=pd.DataFrame(data)
-
-            date_formats=[   
-                "%m/%Y",
-                "%m-%Y",    
-                "%d/%m/%y",  
-                "%m/%d/%y",  
-                "%d.%m.%Y",  
-                "%d/%m/%Y", 
-                "%m/%d/%Y",  
-                "%Y-%m-%d",  
-                "%Y/%m/%d",  
-                "%m-%d-%Y",  
-                "%d-%m-%Y", 
-                "%d.%m.%y",
-                "%m.%d.%y",
-                "%Y/%m",
-                "%Y-%m",
-                "%m/%d",
-                "%d.%m",
-                "%d/%m",
-                "%m.%d",
-                "%Y",
-                "%d-%m"
-                ]
-            dict1={}
-            for column in data.columns:
-                values=data[column]
-                for f in date_formats:
-                    try:
-                        date=pd.to_datetime(values, format=f)
-                        if date.dt.strftime(f).eq(values).all():
-                            dict1=f
-                            break
-                    except ValueError:
-                        pass
-                else: 
-                    dict1=None
-            return dict1
-        date_formats = data.apply(lambda col: get_Date_Format(col.to_frame()))
 
         sonuc=[]
         for i in data.columns:
@@ -471,12 +432,18 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
             else:
                 y = df[target]
         feature_names = X.columns
+        print('X',feature_names)
+        print('y',y)
 
         if len(feature_names) >= 2:
-            rf = RandomForestClassifier(n_jobs=-1, n_estimators=500, oob_score=True, max_depth=5)
+            if isinstance(y.values[0], (int, float)):  # Kontrol eder: hedef değişken sürekli mi?
+                rf = RandomForestRegressor(n_jobs=-1, n_estimators=500, oob_score=True, max_depth=5)
+            else:
+                rf = RandomForestClassifier(n_jobs=-1, n_estimators=500, oob_score=True, max_depth=5)
 
             feat_selector = BorutaPy(rf, n_estimators='auto', verbose=0, random_state=42)
             feat_selector.fit(X.values, y.values)
+            
             importance = feat_selector.ranking_
 
             feature_importance = {}
