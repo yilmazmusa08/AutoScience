@@ -4,7 +4,6 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_validate
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Forest',
                 'Decision Tree Regressor', 'Gradient Boosting Regressor'], metrics=['neg_mean_squared_error','neg_mean_absolute_error', 'neg_mean_absolute_percentage_error' 'r2']):
