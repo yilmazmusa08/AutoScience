@@ -183,6 +183,7 @@ def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
     
     return sub[col].mean()
 
+
 def get_Date_Column(DataFrame) -> pd.DataFrame:
     if not isinstance(DataFrame, pd.DataFrame):
         DataFrame = pd.DataFrame(DataFrame)
@@ -240,14 +241,18 @@ def generate_warning_list(df):
             null_ratio = int(null_values) / total_values
             zero_ratio = int(zero_values) / total_values
             unique_ratio = len(df[col].unique()) / total_values
+            print(col,'null ratio ', null_ratio)
+            print(col,'zero ratio ', zero_ratio)
+            print(col,'unique ratio ', unique_ratio)
 
 
-            if null_ratio > 0.1:
+
+            if null_ratio > 0.30:
                 ratio_str = "NaN Rate : {:.2f}%".format(null_ratio * 100)
                 column = "Column : " + str(col)
                 warning_list.append([column, ratio_str])
 
-            if zero_ratio > 0.30:
+            if zero_ratio > 0.50:
                 ratio_str = "Sparsity Rate : {:.2f}%".format(zero_ratio * 100)
                 column = "Column : " + str(col)
                 warning_list.append([col, ratio_str])

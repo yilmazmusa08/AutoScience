@@ -353,8 +353,9 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     high_corr_target = []
     kt = KolonTipiTahmini1()
     data_dict = kt.fit_transform(df)
+    warning_list = generate_warning_list(df)
     categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
-
+   
     for column in categorical_columns:
         le = LabelEncoder()
         df[column] = le.fit_transform(df[column])
@@ -385,6 +386,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 # Determining the Problem Type and Metrics
 # ======================================
     if target:
+        
         problem_type = get_problem_type(df = df, target = target)
 
 # When the target is active, this code block checks for NaN values, sparse values, and unique values. It also checks for high correlation among numerical columns. If the warning variable is True, it removes the warning columns.
@@ -402,7 +404,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         else:
             pass
 
-        warning_list = generate_warning_list(df)
+        
 
 
 # When the target is active, feature selection (feature importance) is performed using the target variable in the dataset.
@@ -492,10 +494,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         clustering = 'Clustering'
         clustering = {clustering}
         problem_type = {}
-        warning_list = generate_warning_list(df)
 
-    
-    if target is None:
         result = {
             "Column Roles": data_dict,
             "Warnings": warning_list,
@@ -545,7 +544,8 @@ def set_to_list(data):
         return int(data)
     return data
 
+#df = pd.read_csv('/home/firengiz/Belgeler/proje/automl/models/Iris.csv')
 
-# print(create_model(df, target='Salary')) # Salary_Data.csv
+#print(analysis(df, target='Species')) # Salary_Data.csv
 # print(create_model(df, date='DATE', target='Value')) # time2.csv
 #print(create_model(df))  Online_Retail.xlsx
