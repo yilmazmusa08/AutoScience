@@ -5,9 +5,15 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_validate
 import numpy as np
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from catboost import CatBoostClassifier
 
-
-def multiclass_classification(df, cv=5, target=None, metrics=['accuracy', 'precision_macro', 'recall_macro', 'f1_macro']):
+def multiclass_classification(df, cv=5, target=None,
+                               models=['Logistic Regression', 'Random Forest', 
+                                       'Decision Tree Classifier','Gradient Boosting Classifier', 
+                                       'Naive Bayes', 'K-Nearest Neighbors','CatBoost'],
+                                       metrics=['accuracy', 'precision_macro', 'recall_macro', 'f1_macro']):
 
     try:
         for col in df.columns:
@@ -15,7 +21,7 @@ def multiclass_classification(df, cv=5, target=None, metrics=['accuracy', 'preci
                 df[col] = df[col].astype(float)
     except:
         pass
-
+    df = df.dropna()
     y = df[target]
     df = df.select_dtypes(include='number')
     X = df.drop(target, axis=1)
@@ -37,21 +43,38 @@ def multiclass_classification(df, cv=5, target=None, metrics=['accuracy', 'preci
     rf_scores_mean = {metric: np.mean(rf_scores[f'test_{metric}']) for metric in metrics}
     results['Random Forest'] = rf_scores_mean
 
-    # Extra Model 1: Decision Tree Classifier
+    # Decision Tree Classifier
     dt_model = DecisionTreeClassifier()
     dt_scores = cross_validate(dt_model, X, y, cv=cv, scoring=metrics)
     dt_scores_mean = {metric: np.mean(dt_scores[f'test_{metric}']) for metric in metrics}
     results['Decision Tree Classifier'] = dt_scores_mean
 
-    # Extra Model 2: Gradient Boosting Classifier
+    # Gradient Boosting Classifier
     gb_model = GradientBoostingClassifier()
     gb_scores = cross_validate(gb_model, X, y, cv=cv, scoring=metrics)
     gb_scores_mean = {metric: np.mean(gb_scores[f'test_{metric}']) for metric in metrics}
     results['Gradient Boosting Classifier'] = gb_scores_mean
 
+    # Naive Bayes
+    nb_model = GaussianNB()
+    nb_scores = cross_validate(nb_model, X, y, cv=cv, scoring=metrics)
+    nb_scores_mean = {metric: np.mean(nb_scores[f'test_{metric}']) for metric in metrics}
+    results['Naive Bayes'] = nb_scores_mean
+
+    # K-Nearest Neighbors
+    knn_model = KNeighborsClassifier()
+    knn_scores = cross_validate(knn_model, X, y, cv=cv, scoring=metrics)
+    knn_scores_mean = {metric: np.mean(knn_scores[f'test_{metric}']) for metric in metrics}
+    results['K-Nearest Neighbors'] = knn_scores_mean
+
+    # CatBoost
+    catboost_model = CatBoostClassifier()
+    catboost_scores = cross_validate(catboost_model, X, y, cv=cv, scoring=metrics)
+    catboost_scores_mean = {metric: np.mean(catboost_scores[f'test_{metric}']) for metric in metrics}
+    results['CatBoost'] = catboost_scores_mean
 
     best_model = max(results, key=lambda x: np.mean(list(results[x].values())))
     best_metrics = [round(results[best_model][metric], 2) for metric in metrics]
 
-    results = {"Results" : results}
-    return results,'Best Modell:', best_model, 'Accuracyy:',best_metrics
+    return results, 'Best Model:', best_model, 'Accuracy:', best_metrics
+

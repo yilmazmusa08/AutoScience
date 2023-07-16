@@ -12,6 +12,7 @@ def time_series(df, target=None, order=(1, 0, 0), seasonal_order=(1, 0, 0, 12), 
         for column in exogenous_columns:
             if df[column].dtype == 'datetime64[ns]':
                 exogenous_columns.remove(column)
+        df = df.dropna()
 
         # SARIMAX Model
         sarimax_model = SARIMAX(df[target], exog=df[exogenous_columns], order=order, seasonal_order=seasonal_order)

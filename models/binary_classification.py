@@ -1,14 +1,21 @@
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_validate
-import numpy as np
-
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.ensemble import AdaBoostClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
 
 def binary_classification(df, cv=5, target=None, models=['Logistic Regression', 'Random Forest',
-                'Decision Tree Classifier', 'Gradient Boosting Classifier'], metrics=['accuracy', 'precision', 'recall', 'f1', 'roc_auc']):
+                'Decision Tree Classifier', 'Gradient Boosting Classifier',
+                'Naive Bayes', 'Support Vector Machines', 'AdaBoost', 'XGBoost',
+                'LightGBM', 'CatBoost'], metrics=['accuracy', 'precision', 'recall', 'f1', 'roc_auc']):
 
     try:
         for col in df.columns:
@@ -50,7 +57,42 @@ def binary_classification(df, cv=5, target=None, models=['Logistic Regression', 
     gb_scores = cross_validate(gb_model, X, y, cv=cv, scoring=metrics)
     gb_scores_mean = {metric: np.mean(gb_scores[f'test_{metric}']) for metric in metrics}
     results['Gradient Boosting Classifier'] = gb_scores_mean
-    
-    results = {"Results" : results}
-    return results
 
+    # Extra Model 3: Naive Bayes
+    nb_model = GaussianNB()
+    nb_scores = cross_validate(nb_model, X, y, cv=cv, scoring=metrics)
+    nb_scores_mean = {metric: np.mean(nb_scores[f'test_{metric}']) for metric in metrics}
+    results['Naive Bayes'] = nb_scores_mean
+
+    # Extra Model 4: Support Vector Machines
+    svm_model = SVC()
+    svm_scores = cross_validate(svm_model, X, y, cv=cv, scoring=metrics)
+    svm_scores_mean = {metric: np.mean(svm_scores[f'test_{metric}']) for metric in metrics}
+    results['Support Vector Machines'] = svm_scores_mean
+
+    # Extra Model 5: AdaBoost
+    ab_model = AdaBoostClassifier()
+    ab_scores = cross_validate(ab_model, X, y, cv=cv, scoring=metrics)
+    ab_scores_mean = {metric: np.mean(ab_scores[f'test_{metric}']) for metric in metrics}
+    results['AdaBoost'] = ab_scores_mean
+
+    # Extra Model 6: XGBoost
+    xgb_model = XGBClassifier()
+    xgb_scores = cross_validate(xgb_model, X, y, cv=cv, scoring=metrics)
+    xgb_scores_mean = {metric: np.mean(xgb_scores[f'test_{metric}']) for metric in metrics}
+    results['XGBoost'] = xgb_scores_mean
+
+    # Extra Model 7: LightGBM
+    lgbm_model = LGBMClassifier()
+    lgbm_scores = cross_validate(lgbm_model, X, y, cv=cv, scoring=metrics)
+    lgbm_scores_mean = {metric: np.mean(lgbm_scores[f'test_{metric}']) for metric in metrics}
+    results['LightGBM'] = lgbm_scores_mean
+
+    # Extra Model 8: CatBoost
+    cb_model = CatBoostClassifier()
+    cb_scores = cross_validate(cb_model, X, y, cv=cv, scoring=metrics)
+    cb_scores_mean = {metric: np.mean(cb_scores[f'test_{metric}']) for metric in metrics}
+    results['CatBoost'] = cb_scores_mean
+
+    results = {"Results": results}
+    return results
