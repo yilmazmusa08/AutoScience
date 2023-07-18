@@ -26,9 +26,6 @@ def multiclass_classification(df, cv=5, target=None,
     df = df.select_dtypes(include='number')
     X = df.drop(target, axis=1)
 
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
     results = {}
 
     for model in models:
