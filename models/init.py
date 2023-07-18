@@ -57,13 +57,19 @@ def get_problem_type(df, target=None):
     binary_params = {
         "cv": 5,
         "target": target,
-        "models": ["Logistic Regression", "Random Forest", "Decision Tree Classifier", "Gradient Boosting Classifier"],
+        "models": ['Logistic Regression', 'Random Forest',
+                'Decision Tree Classifier', 'Gradient Boosting Classifier',
+                'Naive Bayes', 'Support Vector Machines', 'AdaBoost', 'XGBoost',
+                'LightGBM', 'CatBoost'],
         "metrics": ["accuracy", "precision", "recall", "f1", "roc_auc"]
     }
 
     mlp_params = {
         "cv": 5,
         "target": target,
+        "models": ['Logistic Regression', 'Random Forest', 
+                                       'Decision Tree Classifier','Gradient Boosting Classifier', 
+                                       'Naive Bayes', 'K-Nearest Neighbors','CatBoost'],
         "metrics": ["accuracy", "precision_macro", "recall_macro", "f1_macro"]
     }
 
@@ -90,7 +96,9 @@ def get_problem_type(df, target=None):
     reg_params = {
         "cv": 5,
         "target": target,
-        "models": ["Linear Regression", "Random Forest", "Decision Tree Regressor", "Gradient Boosting Regressor"],
+        "models": ['Linear Regression', 'Random Forest', 'Decision Tree Regressor', 'Gradient Boosting Regressor',
+                                              'Ridge Regression', 'Lasso Regression', 'Elastic Net Regression', 'Polynomial Regression',
+                                              'Support Vector Regression', 'XGBoost Regression', 'LightGBM Regression', 'CatBoost Regression'],
         "metrics": ["neg_mean_squared_error", "neg_mean_absolute_error", "neg_mean_absolute_percentage_error", "r2"]
     }
 
@@ -269,6 +277,8 @@ class KolonTipiTahmini1:
             data=pd.DataFrame(data)
         if len(data) > 5000:
             data=data.sample(n=5000)
+
+        data = data.dropna()
              
         kolon_role=[] # An empty list that can be used to store the role of each column.
         
@@ -280,8 +290,6 @@ class KolonTipiTahmini1:
                 data.drop(col, axis=1, inplace=True)
             elif (len(data[col].unique()) == 2):
                 kolon_role.append('flag')
-            elif len(data[col].unique()) == len(data):
-                kolon_role.append('unique')
             elif (all(isinstance(val, int) for val in data[col]) and len(data[col].unique()) == len(data) and set(data[col]) == set(range(1, len(data)+1))):
                 kolon_role.append('id')
             elif (all(isinstance(val, int) for val in data[col]) and (re.search(r'(id|ID|Id|iD>|ıd)', col))):
@@ -307,6 +315,8 @@ class KolonTipiTahmini1:
                 kolon_role.append('numeric')
             elif len(data[col].unique()) < self.threshold:
                 kolon_role.append('categoric')
+            elif len(data[col].unique()) == len(data):
+                kolon_role.append('unique')
             else:
                 kolon_role.append("identifier")
 
@@ -316,12 +326,16 @@ class KolonTipiTahmini1:
                 col_idx=data.columns.get_loc(date_col)
                 kolon_role[col_idx]='date'
 
-        sonuc=[]
+        sonuc = []
         for i in data.columns:
-            kolon_role_val=kolon_role[data.columns.get_loc(i)]
+            if data.columns.get_loc(i) < len(kolon_role):
+                kolon_role_val = kolon_role[data.columns.get_loc(i)]
+            else:
+                kolon_role_val = "unknown"
             sonuc.append({
                 'col_name': i,
                 'Role': kolon_role_val})
+
 
         result={}
         for d in sonuc:
