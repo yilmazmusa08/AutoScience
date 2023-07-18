@@ -278,7 +278,6 @@ def analyze_and_plot_distributions(df):
             is_int = df[col].apply(lambda x: x.is_integer()).all()
             if is_int:
                 df[col] = df[col].astype("int")
-                print(df.info())
         except:
             pass
 
