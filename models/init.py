@@ -125,14 +125,10 @@ def get_problem_type(df, target=None):
             if df[col].isnull().sum() / len(df) > 0.5:
                 df.drop(col, axis=1, inplace=True)
             elif 0.05 <= df[col].isnull().sum() / len(df) <= 0.5:
-                print(df.info())
                 df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
-                print(df.info())
             else:
                 median_value = df[col].median()
-                print(df.info())
                 df[col].fillna(median_value, inplace=True)
-                print(df.info())
                 
     problem_type = None
     if target is not None:
