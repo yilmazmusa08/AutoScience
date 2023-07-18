@@ -28,13 +28,13 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
     X = df.drop(target, axis=1)
 
     scaler = StandardScaler()
-    X = scaler.fit_transform(X)
 
     results = {}
 
     for model in models:
         if model == "Linear Regression":
             # Linear Regression Model
+            X = scaler.fit_transform(X)
             lr_model = LinearRegression()
             lr_scores = cross_validate(lr_model, X, y, cv=cv, scoring=metrics)
             lr_scores_mean = {metric: round(np.mean(lr_scores[f'test_{metric}']), 2) for metric in metrics}
