@@ -274,39 +274,61 @@ class KolonTipiTahmini1:
         if len(data) > 5000:
             data=data.sample(n=5000)
 
-        data = data.dropna()
-             
+
+        # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
+        df_copy = data.dropna(axis=0).copy()
+
+        # Loop through each column in the DataFrame
+        for col in df_copy.columns:
+            # Check if the column has a numeric data type and is a float
+            if pd.api.types.is_numeric_dtype(df_copy[col]) and df_copy[col].dtype == float:
+                # Check if all values in the column are integers (have no fractional parts)
+                if df_copy[col].apply(lambda x: x.is_integer() or x == int(x)).all():
+                    # Convert the column to the integer data type
+                    df_copy[col] = df_copy[col].astype(int)
+            else:
+                # If the column is not numeric or not a float, continue to the next column
+                continue
+
+        # Find and store column names that have duplicate data in 'df_copy'
+        duplicated_columns = [col2 for i, col1 in enumerate(df_copy.columns) for col2 in df_copy.columns[i+1:] if df_copy[col1].equals(df_copy[col2])]
+
+        # Drop the columns with duplicate data from the original DataFrame 'data'
+        data.drop(duplicated_columns, axis=1, inplace=True)
+
+
         kolon_role=[] # An empty list that can be used to store the role of each column.
         
         if columns:
             data=data[columns]
 
+        
         for col in data.columns:
             if len(data[col].unique()) == 1:
                 data.drop(col, axis=1, inplace=True)
-            elif (len(data[col].unique()) == 2):
+            elif len(data[col].unique()) == 2:
                 kolon_role.append('flag')
-            elif (all(isinstance(val, int) for val in data[col]) and len(data[col].unique()) == len(data) and set(data[col]) == set(range(1, len(data)+1))):
+            elif all(isinstance(val, int) for val in data[col]) and len(data[col].unique()) == len(data):
                 kolon_role.append('id')
-            elif (all(isinstance(val, int) for val in data[col]) and (re.search(r'(id|ID|Id|iD>|ıd)', col))):
+            elif all(isinstance(val, int) for val in data[col]) and (re.search(r'(id|ID|Id|iD>|ıd)', col)):
                 kolon_role.append('id')
             elif all(isinstance(val, int) for val in data[col]) and len(data[col].unique()) == len(data):
-                digits=len(str(data[col].iloc[0]))
+                digits = len(str(data[col].iloc[0]))
                 if (data[col].apply(lambda x: len(str(x)) == digits).sum() / len(data[col])) > 0.9:
-                    kolon_role.append('id')           
+                    kolon_role.append('id')
             elif all([isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in data[col].values]) or (data[col].dtype == 'datetime64[ns]'):
-                    kolon_role.append('date')
+                kolon_role.append('date')
             elif isinstance(data[col].iloc[0], str) and data[col].str.split().str.len().mean() > 4:
                 kolon_role.append('text')
             elif len(data[col].unique()) > self.threshold and (all(isinstance(val, int) for val in data[col]) or all(isinstance(val, float) for val in data[col])):
-                if data[col].apply(lambda x: (isinstance(x, (int,float)) and len(str(x).split('.')) > 1 and str(x).split('.')[1] != '0' and str(x).split('.')[1] != '0000')).sum() > 0:
+                if data[col].apply(lambda x: (isinstance(x, (int, float)) and len(str(x).split('.')) > 1 and str(x).split('.')[1] != '0' and str(x).split('.')[1] != '0000')).sum() > 0:
                     kolon_role.append('scalar')
                 elif data[col].apply(lambda x: isinstance(x, (int))).all():
                     kolon_role.append('numeric')
                 else:
                     kolon_role.append('numeric')
-            elif isinstance(data[col].iloc[0], str) and len(data[col].unique()) >= 0.9*len(data) and data[col].str.split().str.len().mean()<5:
-                kolon_role.append('identifier')     
+            elif isinstance(data[col].iloc[0], str) and len(data[col].unique()) >= 0.9 * len(data) and data[col].str.split().str.len().mean() < 5:
+                kolon_role.append('identifier')
             elif len(data[col].unique()) > self.threshold and (all(isinstance(val, int) for val in data[col]) or all(isinstance(val, float) for val in data[col])):
                 kolon_role.append('numeric')
             elif len(data[col].unique()) < self.threshold:
@@ -314,7 +336,8 @@ class KolonTipiTahmini1:
             elif len(data[col].unique()) == len(data):
                 kolon_role.append('unique')
             else:
-                kolon_role.append("identifier")
+                kolon_role.append('identifier')
+
 
         if 'date' in kolon_role:
             date_cols=[col for col, role in zip(data.columns, kolon_role) if role == 'date']
@@ -363,6 +386,28 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     high_corr_target = []
     kt = KolonTipiTahmini1()
     data_dict = kt.fit_transform(df)
+    # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
+    df_copy = df.dropna(axis=0).copy()
+
+    # Loop through each column in the DataFrame
+    for col in df_copy.columns:
+        # Check if the column has a numeric data type and is a float
+        if pd.api.types.is_numeric_dtype(df_copy[col]) and df_copy[col].dtype == float:
+            # Check if all values in the column are integers (have no fractional parts)
+            if df_copy[col].apply(lambda x: x.is_integer() or x == int(x)).all():
+                # Convert the column to the integer data type
+                df_copy[col] = df_copy[col].astype(int)
+        else:
+            # If the column is not numeric or not a float, continue to the next column
+            continue
+
+    # Find and store column names that have duplicate data in 'df_copy'
+    duplicated_columns = [col2 for i, col1 in enumerate(df_copy.columns) for col2 in df_copy.columns[i+1:] if df_copy[col1].equals(df_copy[col2])]
+
+    # Drop the columns with duplicate data from the original DataFrame 'df'
+    df.drop(duplicated_columns, axis=1, inplace=True)
+
+
     warning_list = generate_warning_list(df)
     categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
    
@@ -413,9 +458,6 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
                 korelasyonlar[kolonlar[i]] = corr_matrix.iloc[i, 0]
         else:
             pass
-
-        
-
 
 # When the target is active, feature selection (feature importance) is performed using the target variable in the dataset.
 # =============================================================================================================
