@@ -156,33 +156,49 @@ def col_types(dataframe, cat_th=10, car_th=20):
 
     return cat_cols, num_cols, cat_but_car + num_but_car, date_cols
 
+
+import pandas as pd
+
 def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
+    
+    for col in df.columns:
+        if len(df) > 5000:
+            df=df.sample(n=5000)
+            if df[col].dtype == 'object':  # Check if the column is of object (string) type
+                df[col] = df[col].str.replace(r"[\'\"\[\]\(\)]", "", regex=True)
+        
     if pd.notna(row[col]):
         return row[col]
-    
+
     query = []
-    
+
     obj = list(df.select_dtypes(include=['object']).columns)
     num = list(df.select_dtypes(exclude=['object']).columns)
 
     for o in obj:
         if pd.notna(row[o]):
-            value = str(row[o]).replace("'", "").replace('"', "")  # Escape single and double quotes
-            query.append(f"({o} == '{value}')")
-    
+            value = str(row[o]).replace("'", "").replace('"', "")
+            query.append(f'({o} == "{value}")') 
+
     for n in num:
         if pd.notna(row[n]):
             query.append(f"({n} >= {row[n] * lower_coeff})")
             query.append(f"({n} <= {row[n] * upper_coeff})")
-    
-    query = " and ".join(query)
-    sub = df.query(query)
-    
-    if len(sub) == 0:
-        return None
-    
-    return sub[col].mean()
 
+    query = " and ".join(query)
+
+    try:
+        sub = df.query(query)
+        if len(sub) == 0:
+            raise ValueError
+    except ValueError:
+        try:
+            
+            sub = df.query(f"{col} >= {row[col] * lower_coeff} and {col} <= {row[col] * upper_coeff}")
+        except:
+            return None
+
+    return sub[col].mean()
 
 def get_Date_Column(DataFrame) -> pd.DataFrame:
     if not isinstance(DataFrame, pd.DataFrame):
@@ -278,6 +294,7 @@ def analyze_and_plot_distributions(df):
             is_int = df[col].apply(lambda x: x.is_integer()).all()
             if is_int:
                 df[col] = df[col].astype("int")
+                print(df.info())
         except:
             pass
 
