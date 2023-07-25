@@ -260,10 +260,6 @@ async def run_analysis(
         if target is None:
             output = analysis(df=df, target=None)
             pca_dict = {}
-            for col in output['Column Roles']:
-                null_counts = df.isnull().sum()
-                empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-                df.drop(empty_cols, axis=1, inplace=True)
             
             for col in df.columns:
                 if df[col].dtype == 'object' and df[col].nunique() < 20:
@@ -298,10 +294,6 @@ async def run_analysis(
             if target:
                 output = analysis(df=df, target=target)
                 pca_dict = {}
-                for col in output['Column Roles']:
-                    null_counts = df.isnull().sum()
-                    empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-                    df.drop(empty_cols, axis=1, inplace=True)
 
                 for col in df.columns:
                     if df[col].dtype == 'object' and df[col].nunique() < 20:
