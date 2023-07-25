@@ -24,14 +24,13 @@ from fitter import Fitter
 
 def describe_dataframe(df):
     """
-    Verilen veri çerçevesindeki tüm sütunların NaN, benzersiz değerler, eşsiz değerler, açıklama vb. gibi 
-    istatistiksel özelliklerini döndürür.
+    Returns statistical results of the dataframe such as NaN values, number of rows, unique values etc.
     
-    Parametreler:
-        df (pandas.DataFrame): Özetlenecek veri çerçevesi
+    Parameters:
+        df (pandas.DataFrame): Dataframe to be Analyzed
         
-    Döndürülen Değerler:
-        pandas.DataFrame: Tüm sütunların istatistiksel özellikleri
+    Return Values:
+        pandas.DataFrame: Statistical Values of All Columns
     
     """
     df = df.select_dtypes(include=['float64', 'int64', 'float32', 'int32', 'float16', 'int16'])
@@ -97,17 +96,16 @@ def correlation_matrix(df, cols):
 def col_types(dataframe, cat_th=10, car_th=20):
     """
 
-    Veri setindeki kategorik, numerik ve kategorik fakat kardinal değişkenlerin isimlerini verir.
-    Not: Kategorik değişkenlerin içerisine numerik görünümlü kategorik değişkenler de dahildir.
+    Detects Categoric, Numeric and Cardinal Columns.
 
     Parameters
     ------
         dataframe: dataframe
-                Değişken isimleri alınmak istenilen dataframe
+                Dataframe to take variables from
         cat_th: int, optional
-                numerik fakat kategorik olan değişkenler için sınıf eşik değeri
+                numeric as values but categoric by content threshold
         car_th: int, optinal
-                kategorik fakat kardinal değişkenler için sınıf eşik değeri
+                categoric as values but cardinal by content threshold
 
     Returns
     ------
