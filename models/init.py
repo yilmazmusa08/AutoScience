@@ -32,8 +32,13 @@ def preprocess(df):
     data_dict = {}
     delete_cols = []
 
-    if len(df) > 5000:
-        df = df.sample(n=5000)
+    for col in df.columns:
+        if len(df) > 5000:
+            df=df.sample(n=5000)
+        if df[col].isnull().sum() / len(df) < 0.05:
+            df.drop(col, axis=1, inplace=True)
+        if df[col].isnull().sum() / len(df) > 0.5:
+            df.drop(col, axis=1, inplace=True)
 
     for col in df.columns:
         try:
@@ -117,18 +122,13 @@ def get_problem_type(df, target=None):
 
 
     for col in df.columns:
+        numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
+        for col in numeric_columns:
+            df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
         if df[col].dtype == "object" and df[col].nunique() < 20:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col])
-        numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
-        for col in numeric_columns:
-            if df[col].isnull().sum() / len(df) > 0.5:
-                df.drop(col, axis=1, inplace=True)
-            elif 0.05 <= df[col].isnull().sum() / len(df) <= 0.5:
-                df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
-            else:
-                median_value = df[col].median()
-                df[col].fillna(median_value, inplace=True)
+
                 
     problem_type = None
     if target is not None:
@@ -302,7 +302,6 @@ class KolonTipiTahmini1:
         if columns:
             data=data[columns]
 
-        
         for col in data.columns:
             if len(data[col].unique()) == 1:
                 data.drop(col, axis=1, inplace=True)
@@ -388,6 +387,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     data_dict = kt.fit_transform(df)
     # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
     df_copy = df.dropna(axis=0).copy()
+    
 
     # Loop through each column in the DataFrame
     for col in df_copy.columns:
@@ -407,13 +407,16 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     # Drop the columns with duplicate data from the original DataFrame 'df'
     df.drop(duplicated_columns, axis=1, inplace=True)
 
-
     warning_list = generate_warning_list(df)
     categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
    
     for column in categorical_columns:
         le = LabelEncoder()
         df[column] = le.fit_transform(df[column])
+    
+    if not np.issubdtype(df[target].dtype, np.number):
+        df[target] = le.fit_transform(df[target])
+        
 
     if target is not None:
         if df[target].dtype == 'object':
@@ -441,7 +444,6 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 # Determining the Problem Type and Metrics
 # ======================================
     if target:
-        
         problem_type = get_problem_type(df = df, target = target)
 
 # When the target is active, this code block checks for NaN values, sparse values, and unique values. It also checks for high correlation among numerical columns. If the warning variable is True, it removes the warning columns.
@@ -461,11 +463,6 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
 # When the target is active, feature selection (feature importance) is performed using the target variable in the dataset.
 # =============================================================================================================
-        # Silme işlemi
-        null_counts = df.isnull().sum()
-        empty_cols = null_counts[null_counts >= len(df) * 0.6].index
-        df.drop(empty_cols, axis=1, inplace=True)
-        print(df.columns)
 
         for col in df.columns:
             if df[col].dtype == 'object' and df[col].nunique() < 20:

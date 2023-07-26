@@ -24,13 +24,14 @@ from fitter import Fitter
 
 def describe_dataframe(df):
     """
-    Returns statistical results of the dataframe such as NaN values, number of rows, unique values etc.
+    Verilen veri çerçevesindeki tüm sütunların NaN, benzersiz değerler, eşsiz değerler, açıklama vb. gibi 
+    istatistiksel özelliklerini döndürür.
     
-    Parameters:
-        df (pandas.DataFrame): Dataframe to be Analyzed
+    Parametreler:
+        df (pandas.DataFrame): Özetlenecek veri çerçevesi
         
-    Return Values:
-        pandas.DataFrame: Statistical Values of All Columns
+    Döndürülen Değerler:
+        pandas.DataFrame: Tüm sütunların istatistiksel özellikleri
     
     """
     df = df.select_dtypes(include=['float64', 'int64', 'float32', 'int32', 'float16', 'int16'])
@@ -96,16 +97,17 @@ def correlation_matrix(df, cols):
 def col_types(dataframe, cat_th=10, car_th=20):
     """
 
-    Detects Categoric, Numeric and Cardinal Columns.
+    Veri setindeki kategorik, numerik ve kategorik fakat kardinal değişkenlerin isimlerini verir.
+    Not: Kategorik değişkenlerin içerisine numerik görünümlü kategorik değişkenler de dahildir.
 
     Parameters
     ------
         dataframe: dataframe
-                Dataframe to take variables from
+                Değişken isimleri alınmak istenilen dataframe
         cat_th: int, optional
-                numeric as values but categoric by content threshold
+                numerik fakat kategorik olan değişkenler için sınıf eşik değeri
         car_th: int, optinal
-                categoric as values but cardinal by content threshold
+                kategorik fakat kardinal değişkenler için sınıf eşik değeri
 
     Returns
     ------
@@ -158,12 +160,8 @@ def col_types(dataframe, cat_th=10, car_th=20):
 import pandas as pd
 
 def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
-    
-    for col in df.columns:
-        if len(df) > 5000:
-            df=df.sample(n=5000)
-            if df[col].dtype == 'object':  # Check if the column is of object (string) type
-                df[col] = df[col].str.replace(r"[\'\"\[\]\(\)]", "", regex=True)
+        
+    forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]    
         
     if pd.notna(row[col]):
         return row[col]
@@ -175,7 +173,8 @@ def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
 
     for o in obj:
         if pd.notna(row[o]):
-            value = str(row[o]).replace("'", "").replace('"', "")
+            for i in forbidden_symbols:
+                value = str(row[o]).replace(i, "")
             query.append(f'({o} == "{value}")') 
 
     for n in num:
@@ -255,11 +254,6 @@ def generate_warning_list(df):
             null_ratio = int(null_values) / total_values
             zero_ratio = int(zero_values) / total_values
             unique_ratio = len(df[col].unique()) / total_values
-            print(col,'null ratio ', null_ratio)
-            print(col,'zero ratio ', zero_ratio)
-            print(col,'unique ratio ', unique_ratio)
-
-
 
             if null_ratio > 0.30:
                 ratio_str = "NaN Rate : {:.2f}%".format(null_ratio * 100)
