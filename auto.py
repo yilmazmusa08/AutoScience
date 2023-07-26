@@ -255,23 +255,12 @@ async def run_analysis(
 
         df = pd.read_csv(uploaded_file)
 
-        output = analysis(df=df, target=target)
+        df = preprocess(df)
 
         if target is None:
             output = analysis(df=df, target=None)
             pca_dict = {}
             
-            for col in df.columns:
-                if df[col].dtype == 'object' and df[col].nunique() < 20:
-                    df[col].fillna(df[col].mode()[0], inplace=True)
-                    le = LabelEncoder()
-                    df[col] = le.fit_transform(df[col])
-                    
-
-            numeric_columns = df.select_dtypes(include=['float', 'int']).columns
-            for col in numeric_columns:
-                df[col].fillna(df[col].mean(), inplace=True)
-            print(numeric_columns.isnull().sum())
             result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
             pca_dict = {
                 'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
@@ -292,19 +281,10 @@ async def run_analysis(
 
         else:
             if target:
+                print('autooooooooooooooo', df)
                 output = analysis(df=df, target=target)
                 pca_dict = {}
 
-                for col in df.columns:
-                    if df[col].dtype == 'object' and df[col].nunique() < 20:
-                        df[col].fillna(df[col].mode()[0], inplace=True)
-                        le = LabelEncoder()
-                        df[col] = le.fit_transform(df[col])
-
-                numeric_columns = df.select_dtypes(include=['float', 'int']).columns
-                print(numeric_columns)
-                for col in numeric_columns:
-                    df[col].fillna(df[col].mean(), inplace=True)
 
                 result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
                 pca_dict = {
@@ -341,7 +321,6 @@ async def show_result(request: Request):
     except Exception as e:
         return f"Error: {str(e)}"
     
-
 
 # Model Part
 @app.post("/model", response_class=HTMLResponse)
