@@ -36,7 +36,7 @@ def preprocess(df):
         if len(df) > 5000:
             df=df.sample(n=5000)
         if df[col].isnull().sum() / len(df) < 0.05:
-            df.drop(col, axis=1, inplace=True)
+            df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
         if df[col].isnull().sum() / len(df) > 0.5:
             df.drop(col, axis=1, inplace=True)
 
@@ -123,8 +123,6 @@ def get_problem_type(df, target=None):
 
     for col in df.columns:
         numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
-        for col in numeric_columns:
-            df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
         if df[col].dtype == "object" and df[col].nunique() < 20:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col])
@@ -414,13 +412,9 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         le = LabelEncoder()
         df[column] = le.fit_transform(df[column])
     
-    if not np.issubdtype(df[target].dtype, np.number):
-        df[target] = le.fit_transform(df[target])
-        
 
     if target is not None:
-        if df[target].dtype == 'object':
-            le = LabelEncoder()
+        if not np.issubdtype(df[target].dtype, np.number):
             df[target] = le.fit_transform(df[target])
             corr = True
         else:
@@ -429,7 +423,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
         corr = False
 
     if corr:
-        numeric_columns = df.select_dtypes(include=['int64', 'float64']).columns
+        numeric_columns = df.select_dtypes(include=['number']).columns
         corr_matrix=df[numeric_columns].corr().abs()
         high_corr_target = []
         for col in corr_matrix.columns:
