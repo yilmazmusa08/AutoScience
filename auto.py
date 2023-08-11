@@ -15,6 +15,7 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
+from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_rows', 50)
@@ -215,10 +216,108 @@ def model(request: Request):
         return RedirectResponse(url="/", status_code=302)
 
 
+
+
+
+
+@app.get("/preprosessing", response_class=HTMLResponse)
+def analyze(request: Request):
+    token = request.cookies.get("token")  # Çerezi (tokeni) al
+    if token:
+        return templates.TemplateResponse("prosesing.html", {"request": request, "token": token})
+    else:
+        return RedirectResponse(url="/", status_code=302)
+
+
 # Define a global variable to store the uploaded file
 uploaded_file = None
 
-# Analysis Part
+@app.post("/preprosessing", response_class=HTMLResponse)
+async def run_analysis_api(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    print("Access token found:", current_user.email)
+
+    global uploaded_file
+    try:
+        # Store the uploaded file in a temporary location
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(file.file.read())
+            uploaded_file = tmp.name
+        
+        try:
+            # Try reading the CSV file using utf-8 encoding
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
+        
+        columns = df.columns.tolist()
+
+        return templates.TemplateResponse("prosesing.html", {"request": request, "columns": columns})
+    
+    except Exception as e:
+        traceback.print_exc()
+        return f"Error occurred while processing the file: {str(e)}"
+
+
+
+
+@app.post("/run_preprosessing", response_class=HTMLResponse)
+async def run_preprosessing(
+    request: Request,
+    target: str = Form(None),
+    current_user: User = Depends(get_current_user)
+):
+    print("Access token found:", current_user.email)
+
+    try:
+        global uploaded_file
+
+        # Try reading the CSV file using utf-8 encoding
+        try:
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
+        
+        output = preprocess(df=df, target=target)
+
+        if isinstance(output, pd.DataFrame):
+            output_file = os.path.join(os.getcwd(), "preprosessing.csv")
+            output.to_csv(output_file, index=False)  # Save DataFrame as CSV
+
+            return templates.TemplateResponse("prosesing.html", {"request": request})
+
+        return JSONResponse(content={"message": "Preprocessing completed successfully", "result": output})
+
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(content={"error": f"An error occurred: {str(e)}"}, status_code=500)
+
+@app.get("/result_preprosessing", response_class=HTMLResponse)
+async def show_result(request: Request):
+    try:
+        # Here, you can read the CSV file that was saved earlier and return it as a JSON response if needed.
+        # This is just an example of how you might do it:
+        output_file = os.path.join(os.getcwd(), "preprosessing.csv")
+        if os.path.exists(output_file):
+            output_df = pd.read_csv(output_file)
+            return templates.TemplateResponse('prosesing.html',{"request": request},content=output_df.to_dict(orient="records"))
+            
+        return JSONResponse(content={"error": "Result file not found"}, status_code=404)
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+
+
+# Define a global variable to store the uploaded file
+uploaded_file = None
+
 @app.post("/analysis", response_class=HTMLResponse)
 async def run_analysis_api(
     request: Request,
@@ -234,7 +333,13 @@ async def run_analysis_api(
             tmp.write(file.file.read())
             uploaded_file = tmp.name
         
-        df = pd.read_csv(uploaded_file)
+        try:
+            # Try reading the CSV file using utf-8 encoding
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
+        
         columns = df.columns.tolist()
 
         return templates.TemplateResponse("analysis.html", {"request": request, "columns": columns})
@@ -253,7 +358,12 @@ async def run_analysis(
     try:
         global uploaded_file
 
-        df = pd.read_csv(uploaded_file)
+        # Try reading the CSV file using utf-8 encoding
+        try:
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
 
         df = preprocess(df)
 
@@ -278,10 +388,9 @@ async def run_analysis(
             # Sonuç sayfasına yönlendir
             return RedirectResponse(url="/result_analysis", status_code=302)
 
-
         else:
             if target:
-                print('autooooooooooooooo', df)
+
                 output = analysis(df=df, target=target)
                 pca_dict = {}
 
@@ -338,7 +447,13 @@ def run_model_api(
             tmp.write(file.file.read())
             uploaded_file = tmp.name
         
-        df = pd.read_csv(uploaded_file)
+        try:
+            # Try reading the CSV file using utf-8 encoding
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
+
         columns = df.columns.tolist()
 
         return templates.TemplateResponse("model.html", {"request": request, "columns": columns})
@@ -359,9 +474,15 @@ async def run_models(
     try:
         global uploaded_file
 
-        df = pd.read_csv(uploaded_file)
+        # Try reading the CSV file using utf-8 encoding
+        try:
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
 
         df = preprocess(df)
+        
         if target is None:
 
             problem_type, params = get_problem_type(df, target=None) # problem_type and params 
@@ -399,6 +520,7 @@ async def run_models(
     except Exception as e:
         traceback.print_exc()
         return f"Dataset is not excepted, an error occurred : {str(e)}"
+
     
     
 @app.get("/result_model", response_class=HTMLResponse)
