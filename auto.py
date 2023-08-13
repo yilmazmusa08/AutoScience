@@ -229,7 +229,7 @@ def analyze(request: Request):
 uploaded_file = None
 
 @app.post("/preprocessing", response_class=HTMLResponse)
-async def run_analysis_api(
+async def preprosessing(
     request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
@@ -245,44 +245,15 @@ async def run_analysis_api(
         
         try:
             # Try reading the CSV file using utf-8 encoding
-            df = pd.read_csv(uploaded_file, encoding='utf-8')
+            df = pd.read_csv(uploaded_file)
         except UnicodeDecodeError:
             # If utf-8 decoding fails, try reading with a different encoding
-            df = pd.read_csv(uploaded_file, encoding='latin-1')
-        
-        columns = df.columns.tolist()
-
-        return templates.TemplateResponse("preprocess.html", {"request": request, "columns": columns})
-    
-    except Exception as e:
-        traceback.print_exc()
-        return f"Error occurred while processing the file: {str(e)}"
-
-
-
-
-@app.post("/run_preprocessing", response_class=HTMLResponse)
-async def run_preprosessing(
-    request: Request,
-    target: str = Form(None),
-    current_user: User = Depends(get_current_user)
-):
-    print("Access token found:", current_user.email)
-
-    try:
-        global uploaded_file
-
-        # Try reading the CSV file using utf-8 encoding
-        try:
             df = pd.read_csv(uploaded_file, encoding='utf-8')
-        except UnicodeDecodeError:
-            # If utf-8 decoding fails, try reading with a different encoding
-            df = pd.read_csv(uploaded_file, encoding='latin-1')
         
-        output = preprocess(df=df, target=target)
+        output = preprocess(df=df)
 
         if isinstance(output, pd.DataFrame):
-            output_file = os.path.join(os.getcwd(), "preprosessing.csv")
+            output_file = os.path.join(os.getcwd(), "preprocessed.csv")
             output.to_csv(output_file, index=False)  # Save DataFrame as CSV
 
             return templates.TemplateResponse("preprocess.html", {"request": request})
@@ -293,12 +264,13 @@ async def run_preprosessing(
         traceback.print_exc()
         return JSONResponse(content={"error": f"An error occurred: {str(e)}"}, status_code=500)
 
+
 @app.get("/result_preprocessing", response_class=HTMLResponse)
 async def show_result(request: Request):
     try:
         # Here, you can read the CSV file that was saved earlier and return it as a JSON response if needed.
         # This is just an example of how you might do it:
-        output_file = os.path.join(os.getcwd(), "preprocessing.csv")
+        output_file = os.path.join(os.getcwd(), "preprocessed.csv")
         if os.path.exists(output_file):
             output_df = pd.read_csv(output_file)
             return templates.TemplateResponse('preprocess.html',{"request": request},content=output_df.to_dict(orient="records"))
