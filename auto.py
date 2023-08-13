@@ -348,54 +348,68 @@ async def run_analysis(
     try:
         global uploaded_file
 
-        file_extension = uploaded_file.filename.split('.')[-1]
-
-        if file_extension == 'csv':
-            # Try reading the CSV file using multiple encodings
-            read_encodings = ['utf-8', 'latin-1']
-            for encoding in read_encodings:
-                try:
-                    df = pd.read_csv(uploaded_file.file, encoding=encoding)
-                    break
-                except (UnicodeDecodeError, pd.errors.ParserError):
-                    pass
-        elif file_extension == 'xlsx':
-            # Try reading the Excel file using multiple encodings
-            read_encodings = ['utf-8', 'latin-1']
-            for encoding in read_encodings:
-                try:
-                    df = pd.read_excel(uploaded_file.file, engine='openpyxl', encoding=encoding)
-                    break
-                except (UnicodeDecodeError, pd.errors.ParserError, XLRDError):
-                    pass
-        else:
-            return "Unsupported file format"
-
+        # Try reading the CSV file using utf-8 encoding
+        try:
+            df = pd.read_csv(uploaded_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 decoding fails, try reading with a different encoding
+            df = pd.read_csv(uploaded_file, encoding='latin-1')
+        except (UnicodeDecodeError, pd.errors.ParserError):
+            # If CSV read fails, try reading as XLSX
+            try:
+                df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+            except (pd.errors.ParserError, UnicodeDecodeError):
+                # If utf-8 decoding fails, try reading with a different encoding
+                df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')
         df = preprocess(df)
 
-        output = analysis(df=df, target=target)
-        pca_dict = {}
+        if target:
+            output = analysis(df=df, target=target)
+            pca_dict = {}
 
-        result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
-        pca_dict = {
-            'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
-            'Principal Component': result_dict['Principal Component']
-        }
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
+            pca_dict = {
+                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                'Principal Component': result_dict['Principal Component']
+            }
 
-        output['PCA'] = pca_dict
-        output = set_to_list(output)
-        output_analysis = {"Results": output}
+            output['PCA'] = pca_dict
+            output = set_to_list(output)
+            output_analysis = {"Results": output}
 
-        # Save analysis results to a JSON file (e.g., analysis.json)
-        with open("analysis.json", "w") as f:
-            json.dump(output_analysis, f)
+            # Save analysis results to a JSON file (e.g., analysis.json)
+            with open("analysis.json", "w") as f:
+                json.dump(output_analysis, f)
 
-        # Redirect to the result page
-        return RedirectResponse(url="/result_analysis", status_code=302)
+            # Redirect to the result page
+            return RedirectResponse(url="/result_analysis", status_code=302)
+
+        else:
+            output = analysis(df=df, target=target)
+            pca_dict = {}
+
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
+            pca_dict = {
+                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                'Principal Component': result_dict['Principal Component']
+            }
+
+            output['PCA'] = pca_dict
+            output = set_to_list(output)
+            output_analysis = {"Results": output}
+
+            # Save analysis results to a JSON file (e.g., analysis.json)
+            with open("analysis.json", "w") as f:
+                json.dump(output_analysis, f)
+
+            # Redirect to the result page
+            return RedirectResponse(url="/result_analysis", status_code=302)
+
 
     except Exception as e:
         traceback.print_exc()
         return f"Error occurred during analysis: {str(e)}"
+
 
 
 
