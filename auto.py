@@ -216,15 +216,11 @@ def model(request: Request):
         return RedirectResponse(url="/", status_code=302)
 
 
-
-
-
-
-@app.get("/preprosessing", response_class=HTMLResponse)
+@app.get("/preprocessing", response_class=HTMLResponse)
 def analyze(request: Request):
     token = request.cookies.get("token")  # Çerezi (tokeni) al
     if token:
-        return templates.TemplateResponse("prosesing.html", {"request": request, "token": token})
+        return templates.TemplateResponse("preprocess.html", {"request": request, "token": token})
     else:
         return RedirectResponse(url="/", status_code=302)
 
@@ -232,7 +228,7 @@ def analyze(request: Request):
 # Define a global variable to store the uploaded file
 uploaded_file = None
 
-@app.post("/preprosessing", response_class=HTMLResponse)
+@app.post("/preprocessing", response_class=HTMLResponse)
 async def run_analysis_api(
     request: Request,
     file: UploadFile = File(...),
@@ -256,7 +252,7 @@ async def run_analysis_api(
         
         columns = df.columns.tolist()
 
-        return templates.TemplateResponse("prosesing.html", {"request": request, "columns": columns})
+        return templates.TemplateResponse("preprocess.html", {"request": request, "columns": columns})
     
     except Exception as e:
         traceback.print_exc()
@@ -265,7 +261,7 @@ async def run_analysis_api(
 
 
 
-@app.post("/run_preprosessing", response_class=HTMLResponse)
+@app.post("/run_preprocessing", response_class=HTMLResponse)
 async def run_preprosessing(
     request: Request,
     target: str = Form(None),
@@ -289,7 +285,7 @@ async def run_preprosessing(
             output_file = os.path.join(os.getcwd(), "preprosessing.csv")
             output.to_csv(output_file, index=False)  # Save DataFrame as CSV
 
-            return templates.TemplateResponse("prosesing.html", {"request": request})
+            return templates.TemplateResponse("preprocess.html", {"request": request})
 
         return JSONResponse(content={"message": "Preprocessing completed successfully", "result": output})
 
@@ -297,15 +293,15 @@ async def run_preprosessing(
         traceback.print_exc()
         return JSONResponse(content={"error": f"An error occurred: {str(e)}"}, status_code=500)
 
-@app.get("/result_preprosessing", response_class=HTMLResponse)
+@app.get("/result_preprocessing", response_class=HTMLResponse)
 async def show_result(request: Request):
     try:
         # Here, you can read the CSV file that was saved earlier and return it as a JSON response if needed.
         # This is just an example of how you might do it:
-        output_file = os.path.join(os.getcwd(), "preprosessing.csv")
+        output_file = os.path.join(os.getcwd(), "preprocessing.csv")
         if os.path.exists(output_file):
             output_df = pd.read_csv(output_file)
-            return templates.TemplateResponse('prosesing.html',{"request": request},content=output_df.to_dict(orient="records"))
+            return templates.TemplateResponse('preprocess.html',{"request": request},content=output_df.to_dict(orient="records"))
             
         return JSONResponse(content={"error": "Result file not found"}, status_code=404)
 
@@ -313,10 +309,6 @@ async def show_result(request: Request):
         return f"Error: {str(e)}"
 
 
-
-
-# Define a global variable to store the uploaded file
-uploaded_file = None
 
 @app.post("/analysis", response_class=HTMLResponse)
 async def run_analysis_api(
