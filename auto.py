@@ -411,9 +411,6 @@ async def run_analysis(
         return f"Error occurred during analysis: {str(e)}"
 
 
-
-
-
 @app.get("/result_analysis", response_class=HTMLResponse)
 async def show_result(request: Request):
     try:
