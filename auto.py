@@ -5,6 +5,8 @@ import uvicorn
 import warnings
 import traceback
 import pandas as pd
+import xlrd
+
 from fastapi import FastAPI, File, UploadFile, Form, Request, Request, Depends, HTTPException
 from sklearn.exceptions import ConvergenceWarning
 from fastapi.templating import Jinja2Templates
@@ -244,7 +246,7 @@ async def preprocessing(
             uploaded_file = tmp.name
         
         try:
-            # First try reading the CSV file as is
+            # First try reading the file as CSV
             df = pd.read_csv(uploaded_file)
         except (pd.errors.ParserError, UnicodeDecodeError):
             # If CSV read fails, try reading with utf-8 encoding
@@ -252,16 +254,20 @@ async def preprocessing(
                 df = pd.read_csv(uploaded_file, encoding='utf-8')
             except (pd.errors.ParserError, UnicodeDecodeError):
                 try:
-                    # If CSV read still fails, try reading as XLSX
-                    df = pd.read_excel(uploaded_file)
-                except (pd.errors.ParserError, UnicodeDecodeError, XLRDError):
-                    # If XLSX read fails, try reading with utf-8 encoding
+                    # If CSV read still fails, try reading with utf-8 encoding
+                    df = pd.read_csv(uploaded_file, encoding='latin-1')
+                except (pd.errors.ParserError, UnicodeDecodeError):
                     try:
-                        df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+                        # If CSV read fails with both encodings, try reading as XLSX
+                        df = pd.read_excel(uploaded_file)
+                        
                     except (pd.errors.ParserError, UnicodeDecodeError):
-                        # If utf-8 decoding fails, try reading with a different encoding
-                        df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')
-        
+                        # If XLSX read fails, try reading with utf-8 encoding
+                        try:
+                            df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+                        except (pd.errors.ParserError, UnicodeDecodeError):
+                            # If utf-8 decoding fails, try reading with a different encoding
+                            df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')        
         output = preprocess(df=df)
 
         if isinstance(output, pd.DataFrame):
@@ -319,15 +325,20 @@ async def run_analysis_api(
                 df = pd.read_csv(uploaded_file, encoding='utf-8')
             except (pd.errors.ParserError, UnicodeDecodeError):
                 try:
-                    # If CSV read still fails, try reading as XLSX
-                    df = pd.read_excel(uploaded_file)
-                except (pd.errors.ParserError, UnicodeDecodeError, XLRDError):
-                    # If XLSX read fails, try reading with utf-8 encoding
+                    # If CSV read still fails, try reading with utf-8 encoding
+                    df = pd.read_csv(uploaded_file, encoding='latin-1')
+                except (pd.errors.ParserError, UnicodeDecodeError):
                     try:
-                        df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+                        # If CSV read fails with both encodings, try reading as XLSX
+                        df = pd.read_excel(uploaded_file)
+                        
                     except (pd.errors.ParserError, UnicodeDecodeError):
-                        # If utf-8 decoding fails, try reading with a different encoding
-                        df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')
+                        # If XLSX read fails, try reading with utf-8 encoding
+                        try:
+                            df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+                        except (pd.errors.ParserError, UnicodeDecodeError):
+                            # If utf-8 decoding fails, try reading with a different encoding
+                            df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')
         
         columns = df.columns.tolist()
 
@@ -336,6 +347,7 @@ async def run_analysis_api(
     except Exception as e:
         traceback.print_exc()
         return f"Error occurred while processing the file: {str(e)}"
+
 
     
 
@@ -383,8 +395,8 @@ async def run_analysis(
 
             # Redirect to the result page
             return RedirectResponse(url="/result_analysis", status_code=302)
-
         else:
+
             output = analysis(df=df, target=target)
             pca_dict = {}
 
@@ -409,6 +421,9 @@ async def run_analysis(
     except Exception as e:
         traceback.print_exc()
         return f"Error occurred during analysis: {str(e)}"
+
+
+
 
 
 @app.get("/result_analysis", response_class=HTMLResponse)
@@ -439,7 +454,7 @@ def run_model_api(
             uploaded_file = tmp.name
         
         try:
-            # First try reading the CSV file as is
+            # First try reading the file as CSV
             df = pd.read_csv(uploaded_file)
         except (pd.errors.ParserError, UnicodeDecodeError):
             # If CSV read fails, try reading with utf-8 encoding
@@ -447,24 +462,28 @@ def run_model_api(
                 df = pd.read_csv(uploaded_file, encoding='utf-8')
             except (pd.errors.ParserError, UnicodeDecodeError):
                 try:
-                    # If CSV read still fails, try reading as XLSX
-                    df = pd.read_excel(uploaded_file)
-                except (pd.errors.ParserError, UnicodeDecodeError, XLRDError):
-                    # If XLSX read fails, try reading with utf-8 encoding
+                    # If CSV read still fails, try reading with utf-8 encoding
+                    df = pd.read_csv(uploaded_file, encoding='latin-1')
+                except (pd.errors.ParserError, UnicodeDecodeError):
                     try:
-                        df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+                        # If CSV read fails with both encodings, try reading as XLSX
+                        df = pd.read_excel(uploaded_file)
+                        
                     except (pd.errors.ParserError, UnicodeDecodeError):
-                        # If utf-8 decoding fails, try reading with a different encoding
-                        df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')
+                        # If XLSX read fails, try reading with utf-8 encoding
+                        try:
+                            df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='utf-8')
+                        except (pd.errors.ParserError, UnicodeDecodeError):
+                            # If utf-8 decoding fails, try reading with a different encoding
+                            df = pd.read_excel(uploaded_file, engine='openpyxl', encoding='latin-1')
         
         columns = df.columns.tolist()
 
-        return templates.TemplateResponse("model.html", {"request": request, "columns": columns})
+        return templates.TemplateResponse("analysis.html", {"request": request, "columns": columns})
     
     except Exception as e:
         traceback.print_exc()
         return f"Error occurred while processing the file: {str(e)}"
-
 
 
 @app.post("/run_models", response_class=HTMLResponse)
