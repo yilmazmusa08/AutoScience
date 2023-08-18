@@ -342,7 +342,6 @@ async def run_analysis_api(
         return f"Error occurred while processing the file: {str(e)}"
 
 
-    
 
 @app.post("/run_analysis", response_class=HTMLResponse)
 async def run_analysis(
