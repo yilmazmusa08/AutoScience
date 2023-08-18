@@ -26,20 +26,20 @@ from prep_tools import generate_warning_list, analyze_and_plot_distributions, fi
 # df = pd.read_csv('Salary_Data.csv')
 # df = pd.read_csv('Ratings.csv')
 
-def preprocess(df):
+def preprocess(df, target=None):
     kt = KolonTipiTahmini1()
 
     data_dict = {}
     delete_cols = []
-
-    for col in df.columns:
-        if len(df) > 5000:
-            df=df.sample(n=5000)
-        if df[col].isnull().sum() / len(df) < 0.05:
-            df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
-        if df[col].isnull().sum() / len(df) > 0.5:
-            df.drop(col, axis=1, inplace=True)
-
+    if target:
+        for col in df.columns:
+            if col != target:  # Skip the target column
+                if len(df) > 90:
+                    df = df.sample(n=90)
+                if df[col].isnull().sum() / len(df) < 0.05:
+                    df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
+                if df[col].isnull().sum() / len(df) > 0.5:
+                    df.drop(col, axis=1, inplace=True)
     for col in df.columns:
         try:
             data_dict[col] = kt.fit_transform(df[[col]])[col]
@@ -49,9 +49,15 @@ def preprocess(df):
         if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
             delete_cols.append(col)
 
-    print("DELETED COLUMNS: ", delete_cols)
-    df = df.drop(columns=delete_cols)
-    return df
+    if len(delete_cols) == 0:
+        return df
+    else:
+        print("DELETED COLUMNS: ", delete_cols)
+        df = df.drop(columns=delete_cols)
+        return df
+
+"""df = pd.read_csv('/home/firengiz/Belgeler/proje/automl/models/Iris.csv')
+print(preprocess(df,target='Species'))"""
 
 #df = preprocess(df)
 #print(df)
@@ -384,26 +390,15 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     kt = KolonTipiTahmini1()
     data_dict = kt.fit_transform(df)
     # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
-    df_copy = df.dropna(axis=0).copy()
-    
-
-    # Loop through each column in the DataFrame
-    for col in df_copy.columns:
-        # Check if the column has a numeric data type and is a float
-        if pd.api.types.is_numeric_dtype(df_copy[col]) and df_copy[col].dtype == float:
-            # Check if all values in the column are integers (have no fractional parts)
-            if df_copy[col].apply(lambda x: x.is_integer() or x == int(x)).all():
-                # Convert the column to the integer data type
-                df_copy[col] = df_copy[col].astype(int)
-        else:
-            # If the column is not numeric or not a float, continue to the next column
-            continue
-
-    # Find and store column names that have duplicate data in 'df_copy'
-    duplicated_columns = [col2 for i, col1 in enumerate(df_copy.columns) for col2 in df_copy.columns[i+1:] if df_copy[col1].equals(df_copy[col2])]
+    duplicated_columns = []
+    for i, col1 in enumerate(df.columns):
+        for col2 in df.columns[i+1:]:
+            if df[col1].equals(df[col2]):
+                duplicated_columns.append(col2)
 
     # Drop the columns with duplicate data from the original DataFrame 'df'
     df.drop(duplicated_columns, axis=1, inplace=True)
+    print('Duplicated Columns:', duplicated_columns)
 
     warning_list = generate_warning_list(df)
     categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
@@ -411,7 +406,6 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     for column in categorical_columns:
         le = LabelEncoder()
         df[column] = le.fit_transform(df[column])
-    
 
     if target is not None:
         if not np.issubdtype(df[target].dtype, np.number):
