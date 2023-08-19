@@ -129,13 +129,14 @@ def get_problem_type(df, target=None):
 
     for col in df.columns:
         numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
-        if df[col].dtype == "object" and df[col].nunique() < 20:
+        if df[col].dtype == "object" and df[col].nunique() < 50:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col])
 
                 
     problem_type = None
     if target is not None:
+        numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
         if len(numeric_columns) > 0:
             if df[target].nunique() == 2:
                 min_count = df[target].value_counts().min()
@@ -145,7 +146,7 @@ def get_problem_type(df, target=None):
                 else:
                     problem_type = "binary classification"
                     # print("Binary Classification Confirmed")
-            elif 2 < df[target].nunique() < 20:
+            elif 2 < df[target].nunique() < 50:
                 problem_type = "multi-class classification"
                 # print("Multiclass Classification Confirmed")
             elif len(df.columns) <= 6:
@@ -391,10 +392,7 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
     data_dict = kt.fit_transform(df)
     # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
     duplicated_columns = []
-    for i, col1 in enumerate(df.columns):
-        for col2 in df.columns[i+1:]:
-            if df[col1].equals(df[col2]):
-                duplicated_columns.append(col2)
+    duplicated_columns = [col2 for i, col1 in enumerate(df.columns) for col2 in df.columns[i+1:] if df[col1].equals(df[col2])]
 
     # Drop the columns with duplicate data from the original DataFrame 'df'
     df.drop(duplicated_columns, axis=1, inplace=True)
@@ -402,13 +400,17 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
 
     warning_list = generate_warning_list(df)
     categorical_columns = [column for column, data in data_dict.items() if data.get("Role") == "categoric" or data.get("Role") == "flag"]
-   
+    
+    nunique_one = [col for col in df.columns if len(df[col].unique()) == 1]
+    df.drop(nunique_one, axis=1, inplace=True)
+
     for column in categorical_columns:
         le = LabelEncoder()
         df[column] = le.fit_transform(df[column])
 
     if target is not None:
         if not np.issubdtype(df[target].dtype, np.number):
+            le = LabelEncoder()
             df[target] = le.fit_transform(df[target])
             corr = True
         else:
