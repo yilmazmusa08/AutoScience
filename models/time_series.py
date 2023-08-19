@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 
 
 def time_series(df, target=None, order=(1, 0, 0), seasonal_order=(1, 0, 0, 12), method='powell', forecast=10):
-
+    # Eğer satır sayısı 5000'den fazlaysa sadece ilk 5000 satırı al
+    if len(df) > 5000:
+        df = df.sample(n=5000, random_state=42)
+        
     if len(df.columns) > 2:
         exogenous_columns = list(df.columns.drop(target))  # Exogenous columns
         for column in exogenous_columns:
