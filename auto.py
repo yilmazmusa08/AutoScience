@@ -229,6 +229,7 @@ def analyze(request: Request):
 
 # Define a global variable to store the uploaded file
 uploaded_file = None
+
 @app.post("/preprocessing", response_class=HTMLResponse)
 async def preprocessing(
     request: Request,
