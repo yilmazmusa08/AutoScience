@@ -111,21 +111,6 @@
     </div>
   </div>
 
-  {% if columns %}
-  <div class="row mt-4">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-body">
-          <form action="/run_preprocessing" method="get">
-            <input type="hidden" name="file" value="{{ uploaded_file }}">
-            <input type="submit" value="Run preprocessing">
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
 
     
 <!-- /.content-header -->
@@ -164,17 +149,6 @@
                               <!-- /.chart-responsive -->
                           </div>
                           <!-- /.col -->
-                          <div class="col-md-4">
-                            <p class="text-center">
-                                <strong>Preprocessing Result</strong>
-                                <!-- Modify this part to display CSV data -->
-                                <pre style="color: white; height: 400px; overflow-y: auto; padding: 10px; white-space: pre-wrap;">{{ csvData }}</pre>
-                            </p>
-                            <!-- Add the download button here -->
-                            <a href="{{ download_link }}" download="preprocessed.csv">
-                                <button id="downloadButton" class="btn btn-success">Download Preprocessed CSV</button>
-                            </a>
-                        </div>
                       </div>
                   </div>
               </div>
@@ -184,37 +158,6 @@
 </section>
 </div>
 
-<style>
-  #downloadButton {
-      background-color: rgb(66, 66, 66);
-      color: white;
-      font-size: 16px;
-      padding: 10px 20px;
-      border: none;
-      cursor: pointer;
-  }
-</style>
-</head>
-<body>
-
-<button id="downloadButton">Csv Download</button>
-
-<script>
-  const downloadButton = document.getElementById('downloadButton');
-  const csvData = "{{ csvData }}"; // Replace with the actual CSV data
-
-  downloadButton.addEventListener('click', () => {
-      const blob = new Blob([csvData], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'preprocessed.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-  });
-</script>
 
 
 
