@@ -71,3 +71,4 @@ wheel==0.40.0
 xgboost==1.7.6
 lightgbm==4.0.0
 catboost==1.2
+xlrd==2.0.1
