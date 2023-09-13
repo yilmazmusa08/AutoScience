@@ -4,6 +4,10 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 
 def dbscan(df, eps, min_samples):
+    # Eğer satır sayısı 5000'den fazlaysa sadece ilk 5000 satırı al
+    if len(df) > 5000:
+        df = df.sample(n=5000, random_state=42)
+        
     # Initialize labels array
     labels = np.zeros(len(df))
 

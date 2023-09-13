@@ -156,31 +156,45 @@ def col_types(dataframe, cat_th=10, car_th=20):
 
     return cat_cols, num_cols, cat_but_car + num_but_car, date_cols
 
+
+import pandas as pd
+
 def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
+        
+    forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]    
+        
     if pd.notna(row[col]):
         return row[col]
-    
+
     query = []
-    
+
     obj = list(df.select_dtypes(include=['object']).columns)
     num = list(df.select_dtypes(exclude=['object']).columns)
 
     for o in obj:
         if pd.notna(row[o]):
-            value = str(row[o]).replace("'", "").replace('"', "")  # Escape single and double quotes
-            query.append(f"({o} == '{value}')")
-    
+            for i in forbidden_symbols:
+                value = str(row[o]).replace(i, "")
+            query.append(f'({o} == "{value}")') 
+
     for n in num:
         if pd.notna(row[n]):
             query.append(f"({n} >= {row[n] * lower_coeff})")
             query.append(f"({n} <= {row[n] * upper_coeff})")
-    
+
     query = " and ".join(query)
-    sub = df.query(query)
-    
-    if len(sub) == 0:
-        return None
-    
+
+    try:
+        sub = df.query(query)
+        if len(sub) == 0:
+            raise ValueError
+    except ValueError:
+        try:
+            
+            sub = df.query(f"{col} >= {row[col] * lower_coeff} and {col} <= {row[col] * upper_coeff}")
+        except:
+            return None
+
     return sub[col].mean()
 
 def get_Date_Column(DataFrame) -> pd.DataFrame:
@@ -241,13 +255,12 @@ def generate_warning_list(df):
             zero_ratio = int(zero_values) / total_values
             unique_ratio = len(df[col].unique()) / total_values
 
-
-            if null_ratio > 0.1:
+            if null_ratio > 0.30:
                 ratio_str = "NaN Rate : {:.2f}%".format(null_ratio * 100)
                 column = "Column : " + str(col)
                 warning_list.append([column, ratio_str])
 
-            if zero_ratio > 0.30:
+            if zero_ratio > 0.50:
                 ratio_str = "Sparsity Rate : {:.2f}%".format(zero_ratio * 100)
                 column = "Column : " + str(col)
                 warning_list.append([col, ratio_str])
