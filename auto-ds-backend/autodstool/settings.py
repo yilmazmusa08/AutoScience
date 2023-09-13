@@ -30,7 +30,7 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 
-INSTALLED_APPS = [
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -47,6 +47,15 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'dj_rest_auth.registration',
 ]
+
+THIRD_PARTY_APPS = []
+
+LOCAL_APPS = [
+    "autodstool.preprocessing.apps.PreprocessingConfig",
+    # Your stuff: custom apps go here
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 SITE_ID = 1
 
