@@ -1,4 +1,4 @@
 from rest_framework import serializers
 
-class FileUploadSerializer(serializers.Serializer):
+class PreprocessingSerializer(serializers.Serializer):
     file = serializers.FileField(use_url=False)

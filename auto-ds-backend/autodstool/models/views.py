@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .serializers import FileUploadSerializer
+from .serializers import ModelsSerializer
 from autodstool.utils.encoding import (determine_csv_encoding, determine_excel_df)
 from autodstool.utils.models.init import *
 
@@ -12,7 +12,7 @@ class ModelsViews(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = FileUploadSerializer(data=request.data)
+        serializer = ModelsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
