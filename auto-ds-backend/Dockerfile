@@ -17,7 +17,6 @@ RUN apk update && apk upgrade && \
     libffi-dev \
     libxslt-dev \
     libxml2-dev \
-    # g++ \
     jpeg-dev \
     zlib-dev \
     libjpeg \
@@ -33,19 +32,11 @@ RUN apk update && apk upgrade && \
     libxft \
     libpng
 
-# Set the CXX environment variable to use g++
-ENV CXX=g++
-
 # Upgrade cmake and ninja (if not already upgraded)
 RUN pip install --upgrade cmake ninja
 
 # Upgrade pip and setuptools (if not already upgraded)
 RUN pip install --upgrade pip setuptools
-
-RUN pip install cython pybind11 pythran meson-python
-
-# RUN pip install scipy --no-cache --no-build-isolation --no-binary scipy
-RUN pip install --no-cache scikit-learn
 
 # Install Python packages from requirements.txt (if not already installed)
 RUN pip install --no-cache-dir -r requirements.txt
