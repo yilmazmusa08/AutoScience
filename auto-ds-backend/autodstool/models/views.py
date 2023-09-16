@@ -16,8 +16,8 @@ class ModelsViews(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            file = serializer.validated_data['file']
-            target_column = serializer.validated_data['target_column']
+            file = serializer.validated_data.get('file')
+            target_column = serializer.validated_data.get('target_column')
             file_content = file.read()
 
             # Try to determine the encoding for CSV files

@@ -16,7 +16,7 @@ class PreprocessingViews(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            file = serializer.validated_data['file']
+            file = serializer.validated_data.get('file')
             file_content = file.read()
 
             # Try to determine the encoding for CSV files
