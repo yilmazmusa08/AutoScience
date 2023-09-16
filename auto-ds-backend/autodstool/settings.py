@@ -51,12 +51,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = []
 
-LOCAL_APPS = [
-    "autodstool.preprocessing.apps.PreprocessingConfig",
-    # Your stuff: custom apps go here
-]
-
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS
 
 SITE_ID = 1
 

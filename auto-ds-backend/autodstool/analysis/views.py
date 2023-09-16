@@ -8,7 +8,7 @@ from .serializers import FileUploadSerializer
 from autodstool.utils.encoding import (determine_csv_encoding, determine_excel_df)
 from autodstool.utils.models.init import *
 
-class PreprocessingViews(APIView):
+class AnalysisViews(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -17,6 +17,7 @@ class PreprocessingViews(APIView):
 
         try:
             file = serializer.validated_data['file']
+            target_column = serializer.validated_data['target_column']
             file_content = file.read()
 
             # Try to determine the encoding for CSV files
@@ -29,15 +30,15 @@ class PreprocessingViews(APIView):
             if df is None:
                 return Response("Could not determine the correct encoding for the file.", status=status.HTTP_400_BAD_REQUEST)
 
-            # Perform your preprocessing steps here and save the preprocessed DataFrame to a CSV file
-            # For example:
-            preprocessed_df = preprocess(df)  # Replace with your preprocessing logic
+            output = analysis(df=df, target=target_column)
+            result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
+            output['PCA'] = {
+                'Cumulative Explained Variance Ratio': result_dict['Cumulative Explained Variance Ratio'],
+                'Principal Component': result_dict['Principal Component']
+            }
+            output = set_to_list(output)
 
-            response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = 'attachment; filename="preprocessed.csv"'
-
-            preprocessed_df.to_csv(response, index=False)
-            return response
+            return Response({"Results": output})
 
         except Exception as e:
             return Response(f"Error occurred while processing the file: {str(e)}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)

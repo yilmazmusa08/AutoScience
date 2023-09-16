@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
-class PreprocessingConfig(AppConfig):
+class AnalysisConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'autodstool.preprocessing'
+    name = 'autodstool.analysis'
