@@ -1,0 +1,13 @@
+.header-title {
+  font-weight: bold;
+  font-size: 24px;
+}
+
+.user-info {
+  color: #fff; /* Text color */
+  font-size: 16px;
+}
+
+.logout-button {
+  margin-left: 8px; /* Margin between user info and logout button */
+}
