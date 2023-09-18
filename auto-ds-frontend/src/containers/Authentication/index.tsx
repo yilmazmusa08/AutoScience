@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Form, Input, Button, Col } from "antd";
+import { Tabs, Form, Input, Button } from "antd";
 import { useApp } from "../../context/app.context";
 import "./index.css";
 

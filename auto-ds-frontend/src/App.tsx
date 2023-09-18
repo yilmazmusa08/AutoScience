@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ConfigProvider, Layout, Row, Col, Menu } from "antd";
+import { ConfigProvider, Layout, Menu } from "antd";
 import Header from "./containers/Header";
 import Authentication from "./containers/Authentication";
 import Preprocessing from "./containers/Preprocessing";

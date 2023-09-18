@@ -106,13 +106,16 @@ const useAppContext = (props: AppContextState): AppContextState => {
     [],
   );
 
-  const updateFile = useCallback((file: AppContextState["file"]) => {
-    setFile(file);
-    updateTargetColumns(defaultAppContext.targetColumns);
-    updateTargetColumn(defaultAppContext.targetColumn);
-    updateAnalysis(defaultAppContext.analysis);
-    updateModels(defaultAppContext.models);
-  }, []);
+  const updateFile = useCallback(
+    (file: AppContextState["file"]) => {
+      setFile(file);
+      updateTargetColumns(defaultAppContext.targetColumns);
+      updateTargetColumn(defaultAppContext.targetColumn);
+      updateAnalysis(defaultAppContext.analysis);
+      updateModels(defaultAppContext.models);
+    },
+    [updateTargetColumns, updateTargetColumn, updateAnalysis, updateModels],
+  );
 
   const updateLoading = useCallback((loading: AppContextState["loading"]) => {
     setLoading(loading);
@@ -212,7 +215,7 @@ const useAppContext = (props: AppContextState): AppContextState => {
         });
       }
     }
-  }, []);
+  }, [updateAuthUser]);
 
   return {
     analysis,
