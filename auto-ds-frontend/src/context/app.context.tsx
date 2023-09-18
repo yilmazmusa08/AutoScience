@@ -194,10 +194,7 @@ const useAppContext = (props: AppContextState): AppContextState => {
   const logout = () => {
     UserStorage.clear();
     updateAuthUser(defaultAppContext.authUser);
-    updateTargetColumns(defaultAppContext.targetColumns);
-    updateTargetColumn(defaultAppContext.targetColumn);
-    updateAnalysis(defaultAppContext.analysis);
-    updateModels(defaultAppContext.models);
+    updateFile(defaultAppContext.file);
   };
 
   useEffect(() => {

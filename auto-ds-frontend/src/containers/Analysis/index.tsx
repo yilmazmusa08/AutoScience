@@ -89,6 +89,7 @@ const Analysis: React.FC = () => {
             placeholder="Select the target column"
             disabled={!file}
             onSelect={(value: string) => updateTargetColumn(value)}
+            onClear={() => updateTargetColumn(null)}
             value={targetColumn}
             options={targetColumns?.map((column) => ({
               value: column,
