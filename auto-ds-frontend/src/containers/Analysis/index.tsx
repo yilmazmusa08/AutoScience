@@ -1,5 +1,5 @@
 import React from "react";
-import { InboxOutlined } from "@ant-design/icons";
+import { InboxOutlined, LoadingOutlined } from "@ant-design/icons";
 import {
   Row,
   Col,
@@ -9,6 +9,7 @@ import {
   Upload,
   Space,
   Select,
+  Spin,
 } from "antd";
 import { useApp } from "../../context/app.context";
 import Papa from "papaparse";
@@ -19,12 +20,14 @@ const { Dragger } = Upload;
 const Analysis: React.FC = () => {
   const {
     analyze,
+    analysis,
     updateTargetColumns,
     targetColumns,
     updateTargetColumn,
     targetColumn,
     file,
     updateFile,
+    loading,
   } = useApp();
 
   const handleAnalysis = () => {
@@ -34,11 +37,9 @@ const Analysis: React.FC = () => {
   };
 
   return (
-    <Col>
-      <Row>
-        <Typography.Title level={4} style={{ marginBottom: 20 }}>
-          Analysis
-        </Typography.Title>
+    <Col className="analysis-container">
+      <Row className="analysis-title">
+        <Typography.Title level={4}>Analysis</Typography.Title>
       </Row>
       <Row>
         <Space wrap align="start">
@@ -48,8 +49,6 @@ const Analysis: React.FC = () => {
             maxCount={1}
             onRemove={(file) => {
               updateFile(null);
-              updateTargetColumns([]);
-              updateTargetColumn(null);
             }}
             beforeUpload={(file) => {
               const isLt20M = file.size / 1024 / 1024 < 20;
@@ -69,7 +68,7 @@ const Analysis: React.FC = () => {
                 };
                 reader.readAsBinaryString(file);
               } else {
-                message.error("File must smaller than 20MB!");
+                message.error("File must be smaller than 20MB!");
               }
               return false;
             }}
@@ -99,13 +98,32 @@ const Analysis: React.FC = () => {
           <Button
             type="primary"
             onClick={handleAnalysis}
-            disabled={!file}
-            // loading={uploading}
+            disabled={!file || loading}
           >
-            Analyze
+            {loading ? (
+              <>
+                <LoadingOutlined /> Analyzing...
+              </>
+            ) : (
+              "Analyze"
+            )}
           </Button>
         </Space>
       </Row>
+      <Row>
+        <Typography.Title level={5}>Results</Typography.Title>
+      </Row>
+      <Spin wrapperClassName="results-container" spinning={loading}>
+        <Row className="results-container">
+          {analysis && (
+            <Typography.Paragraph className="results-text">
+              <pre className="results-pre">
+                {JSON.stringify(analysis, null, 2)}
+              </pre>
+            </Typography.Paragraph>
+          )}
+        </Row>
+      </Spin>
     </Col>
   );
 };

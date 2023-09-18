@@ -1,0 +1,27 @@
+.models-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.models-title {
+  margin-bottom: 10px;
+}
+
+.results-container {
+  position: relative;
+  height: 100%;
+  margin-bottom: 15px;
+}
+
+.results-text {
+  width: 100%;
+}
+
+.results-pre {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  overflow: scroll;
+  margin: 0 !important;
+}

@@ -8,10 +8,10 @@ import { AuthenticationUrl } from "../constants/urls";
 export function registerRequest(payload: IRegister): Promise<IAuthResponse> {
   return BackendClient.post(AuthenticationUrl.Register, payload)
     .then(({ data }) => {
-      return data;
+      return Promise.resolve(data);
     })
     .catch((error) => {
-      console.log(error);
-      throw error
+      console.error(error);
+      return Promise.reject(error);
     });
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { InboxOutlined } from "@ant-design/icons";
+import { InboxOutlined, LoadingOutlined } from "@ant-design/icons";
 import {
   Row,
   Col,
@@ -9,6 +9,7 @@ import {
   Upload,
   Space,
   Select,
+  Spin,
 } from "antd";
 import { useApp } from "../../context/app.context";
 import Papa from "papaparse";
@@ -19,12 +20,14 @@ const { Dragger } = Upload;
 const Models: React.FC = () => {
   const {
     runModels,
+    models,
     updateTargetColumns,
     targetColumns,
     updateTargetColumn,
     targetColumn,
     file,
     updateFile,
+    loading,
   } = useApp();
 
   const handleModels = () => {
@@ -34,11 +37,9 @@ const Models: React.FC = () => {
   };
 
   return (
-    <Col>
-      <Row>
-        <Typography.Title level={4} style={{ marginBottom: 20 }}>
-          Models
-        </Typography.Title>
+    <Col className="models-container">
+      <Row className="models-title">
+        <Typography.Title level={4}>Models</Typography.Title>
       </Row>
       <Row>
         <Space wrap align="start">
@@ -48,8 +49,6 @@ const Models: React.FC = () => {
             maxCount={1}
             onRemove={(file) => {
               updateFile(null);
-              updateTargetColumns([]);
-              updateTargetColumn(null);
             }}
             beforeUpload={(file) => {
               const isLt20M = file.size / 1024 / 1024 < 20;
@@ -99,13 +98,32 @@ const Models: React.FC = () => {
           <Button
             type="primary"
             onClick={handleModels}
-            disabled={!file}
-            // loading={uploading}
+            disabled={!file || loading}
           >
-            Run Models
+            {loading ? (
+              <>
+                <LoadingOutlined /> Running Models...
+              </>
+            ) : (
+              "Run Models"
+            )}
           </Button>
         </Space>
       </Row>
+      <Row>
+        <Typography.Title level={5}>Results</Typography.Title>
+      </Row>
+      <Spin wrapperClassName="results-container" spinning={loading}>
+        <Row className="results-container">
+          {models && (
+            <Typography.Paragraph className="results-text">
+              <pre className="results-pre">
+                {JSON.stringify(models, null, 2)}
+              </pre>
+            </Typography.Paragraph>
+          )}
+        </Row>
+      </Spin>
     </Col>
   );
 };

@@ -14,10 +14,10 @@ export function analyzeRequest(payload: IAnalysisRequest): Promise<IAnalysis> {
 
   return BackendClient.post(AnalysisUrl.Analyze, formData)
     .then(({ data }) => {
-      return data;
+      return Promise.resolve(data);
     })
     .catch((error) => {
-      console.log(error);
-      return {} as IAnalysis;
+      console.error(error);
+      return Promise.reject(error);
     });
 }

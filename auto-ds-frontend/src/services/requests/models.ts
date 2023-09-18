@@ -11,10 +11,10 @@ export function modelsRequest(payload: IModelsRequest): Promise<IModels> {
 
   return BackendClient.post(ModelsUrl.RunModels, formData)
     .then(({ data }) => {
-      return data;
+      return Promise.resolve(data);
     })
     .catch((error) => {
-      console.log(error);
-      return {} as IModels;
+      console.error(error);
+      return Promise.reject(error);
     });
 }

@@ -1,35 +1,24 @@
 import React from "react";
-import { InboxOutlined } from "@ant-design/icons";
-import {
-  Row,
-  Col,
-  Button,
-  Typography,
-  message,
-  Upload,
-  Space,
-} from "antd";
+import { InboxOutlined, LoadingOutlined } from "@ant-design/icons";
+import { Row, Col, Button, Typography, message, Upload, Space } from "antd";
 import { useApp } from "../../context/app.context";
-import { preprocessRequest } from "../../services/requests/preprocess";
 import "./index.css";
 
 const { Dragger } = Upload;
 
 const Preprocessing: React.FC = () => {
-  const { updateFile, file } = useApp();
+  const { preprocess, updateFile, file, loading } = useApp();
 
   const handleDownload = () => {
     if (file) {
-      preprocessRequest({ file });
+      preprocess({ file });
     }
   };
 
   return (
-    <Col>
-      <Row>
-        <Typography.Title level={4} style={{ marginBottom: 20 }}>
-          Preprocessing
-        </Typography.Title>
+    <Col className="preprocessing-container">
+      <Row className="preprocessing-title">
+        <Typography.Title level={4}>Preprocessing</Typography.Title>
       </Row>
       <Row>
         <Space wrap align="start">
@@ -64,10 +53,15 @@ const Preprocessing: React.FC = () => {
           <Button
             type="primary"
             onClick={handleDownload}
-            disabled={!file}
-            // loading={uploading}
+            disabled={!file || loading}
           >
-            Download
+            {loading ? (
+              <>
+                <LoadingOutlined /> Preprocessing...
+              </>
+            ) : (
+              "Download"
+            )}
           </Button>
         </Space>
       </Row>

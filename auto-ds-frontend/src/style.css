@@ -52,3 +52,7 @@ a:active {
 pre {
   white-space: pre-wrap;
 }
+
+.ant-spin-container {
+  height: 100%;
+}
