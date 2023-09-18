@@ -35,6 +35,12 @@ interface AppContextState {
   logout: () => void;
   register: (payload: IRegister) => void;
   authUser: IAuthResponse | null;
+  targetColumns: string[] | undefined;
+  targetColumn: string | null;
+  updateTargetColumns: (targetColumns: string[]) => void;
+  updateTargetColumn: (targetColumn: string | null) => void;
+  file: File | null;
+  updateFile: (file: File | null) => void;
 }
 
 const defaultAppContext: AppContextState = {
@@ -46,12 +52,21 @@ const defaultAppContext: AppContextState = {
   logout: () => {},
   register: (_payload: IRegister) => {},
   authUser: null,
+  targetColumns: [],
+  targetColumn: null,
+  updateTargetColumns: (_targetColumns: string[]) => {},
+  updateTargetColumn: (_targetColumn: string | null) => {},
+  file: null,
+  updateFile: (_file: File | null) => {},
 };
 
 const useAppContext = (props: AppContextState): AppContextState => {
   const [authUser, setAuthUser] = useState(props.authUser);
   const [analysis, setAnalysis] = useState(props.analysis);
   const [models, setModels] = useState(props.models);
+  const [targetColumns, setTargetColumns] = useState(props.targetColumns);
+  const [targetColumn, setTargetColumn] = useState(props.targetColumn);
+  const [file, setFile] = useState(props.file);
 
   const updateAuthUser = useCallback((authUser: IAuthResponse | null): void => {
     setAuthUser(authUser);
@@ -63,6 +78,21 @@ const useAppContext = (props: AppContextState): AppContextState => {
 
   const updateModels = useCallback((models: IModels): void => {
     setModels(models);
+  }, []);
+
+  const updateTargetColumns = useCallback((targetColumns: string[]): void => {
+    setTargetColumns(targetColumns);
+  }, []);
+
+  const updateTargetColumn = useCallback(
+    (targetColumn: string | null): void => {
+      setTargetColumn(targetColumn);
+    },
+    [],
+  );
+
+  const updateFile = useCallback((file: File | null): void => {
+    setFile(file);
   }, []);
 
   const analyze = (payload: IAnalysisRequest) => {
@@ -124,6 +154,12 @@ const useAppContext = (props: AppContextState): AppContextState => {
     logout,
     register,
     authUser,
+    targetColumns,
+    targetColumn,
+    updateTargetColumns,
+    updateTargetColumn,
+    file,
+    updateFile,
   };
 };
 
@@ -149,6 +185,12 @@ export const AppContextProvider = ({
     logout,
     register,
     authUser,
+    targetColumns,
+    targetColumn,
+    updateTargetColumns,
+    updateTargetColumn,
+    file,
+    updateFile,
   } = useAppContext(defaultAppContext);
 
   return (
@@ -162,6 +204,12 @@ export const AppContextProvider = ({
         logout,
         register,
         authUser,
+        targetColumns,
+        targetColumn,
+        updateTargetColumns,
+        updateTargetColumn,
+        file,
+        updateFile,
       }}
     >
       {children}

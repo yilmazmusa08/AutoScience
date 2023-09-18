@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { ConfigProvider, Layout, Row, Col, Menu } from "antd";
 import Header from "./containers/Header";
 import Authentication from "./containers/Authentication";
+import Preprocessing from "./containers/Preprocessing";
+import Analysis from "./containers/Analysis";
+import Models from "./containers/Models";
 import { useApp } from "./context/app.context";
 import {
   FileDoneOutlined,
@@ -14,6 +17,7 @@ const { Content, Sider } = Layout;
 const App: React.FC = () => {
   const { authUser } = useApp();
   const [collapsed, setCollapsed] = useState(false);
+  const [selectedKey, setSelectedKey] = useState("1");
 
   return (
     <ConfigProvider
@@ -34,6 +38,8 @@ const App: React.FC = () => {
               theme="dark"
               mode="inline"
               defaultSelectedKeys={["1"]}
+              selectedKeys={[selectedKey]}
+              onSelect={({ key }) => setSelectedKey(key)}
               items={[
                 {
                   key: "1",
@@ -42,7 +48,7 @@ const App: React.FC = () => {
                 },
                 {
                   key: "2",
-                  icon: <LineChartOutlined/>,
+                  icon: <LineChartOutlined />,
                   label: "Analysis",
                 },
                 {
@@ -61,14 +67,13 @@ const App: React.FC = () => {
               <Authentication />
             ) : (
               <>
-                <Row gutter={32} style={{ height: "100%" }}>
-                  <Col span={7}>
-                    <></>
-                  </Col>
-                  <Col span={17}>
-                    <></>
-                  </Col>
-                </Row>
+                {selectedKey === "1" ? (
+                  <Preprocessing />
+                ) : selectedKey === "2" ? (
+                  <Analysis />
+                ) : (
+                  selectedKey === "3" && <Models />
+                )}
               </>
             )}
           </Content>
