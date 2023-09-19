@@ -1,0 +1,45 @@
+version: "3"
+services:
+  backend:
+    restart: always
+    build:
+      context: ./auto-ds-backend
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./auto-ds-backend:/code
+    ports:
+      - 8000
+    depends_on:
+      - db
+  db:
+    image: nouchka/sqlite3:latest
+    volumes:
+      - ./auto-ds-backend/db/:/root/db/
+
+  frontend-prod:
+    restart: always
+    build:
+      context: ./auto-ds-frontend
+      dockerfile: Dockerfile
+
+  frontend-dev:
+    restart: always
+    build:
+      context: ./auto-ds-frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./auto-ds-frontend:/app
+    ports:
+      - 3000:3000
+    profiles:
+      - dev
+
+  nginx:
+    restart: always
+    build:
+      context: ./auto-ds-frontend
+    ports:
+      - 80:80
+    depends_on:
+      - frontend-prod

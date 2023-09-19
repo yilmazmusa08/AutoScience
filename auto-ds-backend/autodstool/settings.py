@@ -27,7 +27,10 @@ SECRET_KEY = 'django-insecure-y56fe985yjft)guk0+oae(zk4p9ikd$ex19j6_7gxr#7o=y@@i
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CORS_ORIGIN_WHITELIST = ['http://localhost:3000']
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost',
+    'http://localhost:3000',
+]
 
 # Application definition
 
@@ -133,7 +136,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/workers-static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

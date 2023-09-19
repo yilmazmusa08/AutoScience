@@ -1,0 +1,15 @@
+FROM node:18-alpine as development
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json to the working directory
+COPY package*.json ./
+
+# Install project dependencies (use yarn if you have a yarn.lock file)
+RUN npm install
+
+# Copy the entire project directory into the container
+COPY . .
+
+CMD ["npm", "start"]
