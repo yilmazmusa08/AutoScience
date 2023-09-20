@@ -20,8 +20,8 @@ help:
 	@echo "  logs             - View container logs"
 
 build:         ## Build the project in development mode
-	@if [ ! -f "./auto-ds-frontend/.env" ]; then \
-		cp "./auto-ds-frontend/.env.dev" "./auto-ds-frontend/.env"; \
+	@if [ ! -f ".env" ]; then \
+		cp ".env.dev" ".env"; \
 	fi
 	$(DOCKER_COMPOSE) --profile dev up --build
 

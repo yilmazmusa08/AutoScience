@@ -45,7 +45,7 @@ make createsuperuser
 
 ## Configuration
 
-You can configure the project by modifying the .env file in the frontend directory. Adjust the environment variables as needed.
+You can configure the project by modifying the .env file. Adjust the environment variables as needed.
 
 ## Usage
 

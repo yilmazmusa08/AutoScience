@@ -1,9 +1,16 @@
+from django.conf import settings
 from rest_framework import serializers
 from autodstool.utils.encoding import (determine_csv_encoding, determine_excel_df)
 
-class PreprocessingSerializer(serializers.Serializer):
-    file = serializers.FileField(use_url=False)
+# Define a custom validator function to check the file size
+def validate_file_size(value):
+    max_size_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
+    if value.size > max_size_bytes:
+        raise serializers.ValidationError(f"File size exceeds the maximum allowed size of {settings.MAX_FILE_SIZE_MB} MB.")
 
+class PreprocessingSerializer(serializers.Serializer):
+    file = serializers.FileField(use_url=False, validators=[validate_file_size])
+    
     def validate_file(self, value):
         try:
             file_content = value.read()
