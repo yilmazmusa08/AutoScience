@@ -74,7 +74,9 @@ make test
 ## Access URLs
 
 Backend APIs: http://localhost/api
+
 Django Admin: http://localhost/admin
 
 Build frontend: http://localhost
+
 Frontend for the development: http://localhost:3000
