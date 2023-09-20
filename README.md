@@ -6,7 +6,7 @@
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [Running Tests](#tests)
+- [Running Tests](#running-tests)
 - [Access URLs](#access-urls)
 
 
