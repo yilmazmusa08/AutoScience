@@ -33,9 +33,7 @@ def preprocess(df):
     delete_cols = []
 
     for col in df.columns:
-        if len(df) > 5000:
-            df=df.sample(n=5000)
-        if df[col].isnull().sum() / len(df) < 0.05:
+        if df[col].isnull().sum() / len(df) <= 0.5:
             df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
         if df[col].isnull().sum() / len(df) > 0.5:
             df.drop(col, axis=1, inplace=True)
