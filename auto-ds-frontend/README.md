@@ -1,3 +1,5 @@
+To run the frontend standalone:
+
 ### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
@@ -16,10 +18,10 @@ npm install
 
 ### Configuration
 
-.env file
+Put the copy of the `.env.dev` file into a new `.env` file. 
 
 ```shell
-REACT_APP_BASE_URL=http://localhost:8000/api
+REACT_APP_BASE_URL=http://localhost/api
 ```
 
 ### Run
