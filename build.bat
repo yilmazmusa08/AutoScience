@@ -23,8 +23,11 @@ if "%1"=="" (
 goto :end
 
 :build
-if not exist .\.env (
-    copy .\.env.dev .\.env
+if not exist .\auto-ds-backend\.env (
+    copy .\auto-ds-backend\.env.dev .\auto-ds-backend\.env
+)
+if not exist .\auto-ds-frontend\.env (
+    copy .\auto-ds-frontend\.env.dev .\auto-ds-frontend\.env
 )
 %DOCKER_COMPOSE% --profile dev up --build
 goto :end

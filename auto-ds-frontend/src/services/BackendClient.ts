@@ -1,11 +1,11 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { message } from "antd";
 
-import { BASE_URL } from "./constants/apiConfigs";
+import constants from "../constants";
 import { UserStorage, AuthUser } from "./UserStorage";
 
 const backendInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: constants.BaseUrl,
 });
 
 backendInstance.interceptors.response.use(

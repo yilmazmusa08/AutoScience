@@ -21,8 +21,8 @@ npm install
 Put the copy of the `.env.dev` file into a new `.env` file. 
 
 ```shell
-BASE_API_URL=http://localhost/api
-MAX_FILE_SIZE_MB=20
+REACT_APP_BASE_API_URL=http://localhost/api
+REACT_APP_MAX_FILE_SIZE_MB=20
 ```
 
 ### Run

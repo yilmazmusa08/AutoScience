@@ -12,10 +12,8 @@ import {
   Spin,
 } from "antd";
 import { useApp } from "../../context/app.context";
-import {
-  isFileSizeWithinLimit,
-  MAX_FILE_SIZE_MB,
-} from "../../utils/validations";
+import { isFileSizeWithinLimit } from "../../utils/validations";
+import constant from "../../constants";
 import Papa from "papaparse";
 import "./index.css";
 
@@ -72,7 +70,7 @@ const Models: React.FC = () => {
                 reader.readAsBinaryString(file);
               } else {
                 message.error(
-                  `File size must be smaller than ${MAX_FILE_SIZE_MB}MB!`,
+                  `File size must be smaller than ${constant.MaxFileSizeMB}MB!`,
                 );
               }
               return false;
@@ -86,7 +84,7 @@ const Models: React.FC = () => {
             </p>
             <p className="ant-upload-hint">
               Support for a single upload. (CSV, XLSX, XLS) <br />
-              Max file size: {MAX_FILE_SIZE_MB} MB
+              Max file size: {constant.MaxFileSizeMB} MB
             </p>
           </Dragger>
           <Select
