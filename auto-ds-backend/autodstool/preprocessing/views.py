@@ -18,7 +18,7 @@ class PreprocessingViews(APIView):
             df = serializer.validated_data.get('file')
             # Perform your preprocessing steps here and save the preprocessed DataFrame to a CSV file
             # For example:
-            preprocessed_df = preprocess(df)  # Replace with your preprocessing logic
+            preprocessed_df = preprocess(df, model=False)  # Replace with your preprocessing logic
 
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="preprocessed.csv"'
