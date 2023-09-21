@@ -159,43 +159,44 @@ def col_types(dataframe, cat_th=10, car_th=20):
 
 import pandas as pd
 
-def fill_na(row, col, lower_coeff=0.75, upper_coeff=1.25, df=None):
-        
-    forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]    
-        
-    if pd.notna(row[col]):
-        return row[col]
+def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=5):
+    forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]
 
-    query = []
+    for _ in range(max_attempts):
+        if pd.notna(row[col]):
+            return row[col]
 
-    obj = list(df.select_dtypes(include=['object']).columns)
-    num = list(df.select_dtypes(exclude=['object']).columns)
+        query = []
 
-    for o in obj:
-        if pd.notna(row[o]):
-            for i in forbidden_symbols:
-                value = str(row[o]).replace(i, "")
-            query.append(f'({o} == "{value}")') 
+        obj = list(df.select_dtypes(include=['object']).columns)
+        num = list(df.select_dtypes(exclude=['object']).columns)
 
-    for n in num:
-        if pd.notna(row[n]):
-            query.append(f"({n} >= {row[n] * lower_coeff})")
-            query.append(f"({n} <= {row[n] * upper_coeff})")
+        for o in obj:
+            if pd.notna(row[o]):
+                for i in forbidden_symbols:
+                    value = str(row[o]).replace(i, "")
+                    query.append(f'({o} == "{value}")')
 
-    query = " and ".join(query)
+        for n in num:
+            if pd.notna(row[n]):
+                query.append(f"({n} >= {row[n] * lower_coeff})")
+                query.append(f"({n} <= {row[n] * upper_coeff})")
 
-    try:
-        sub = df.query(query)
-        if len(sub) == 0:
-            raise ValueError
-    except ValueError:
+        query = " and ".join(query)
+        print("query : ", query)
+
         try:
-            
-            sub = df.query(f"{col} >= {row[col] * lower_coeff} and {col} <= {row[col] * upper_coeff}")
-        except:
-            return None
+            sub = df.query(query)
+            if len(sub) == 0:
+                raise ValueError
+            else:
+                return sub[col].mean()
+        except ValueError:
+            lower_coeff *= 0.8  # Decrease the lower threshold by 20%
+            upper_coeff *= 1.2  # Increase the upper threshold by 20%
 
-    return sub[col].mean()
+    # If all attempts are exhausted, return None
+    return None
 
 def get_Date_Column(DataFrame) -> pd.DataFrame:
     if not isinstance(DataFrame, pd.DataFrame):
@@ -468,3 +469,8 @@ def compare_means(df, col1_name, col2_name, alpha=0.05):
     else:
         return False
 
+def replace_special_characters(col_name):
+    forbidden_symbols = ['/', '|', '\\', '.','*']
+    for symbol in forbidden_symbols:
+        col_name = col_name.replace(symbol, '_')
+    return col_name

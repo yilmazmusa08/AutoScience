@@ -18,7 +18,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
 warnings.filterwarnings('ignore')
-from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column
+from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters
 
 
 # df = pd.read_csv('time2.csv')
@@ -26,29 +26,58 @@ from .prep_tools import generate_warning_list, analyze_and_plot_distributions, f
 # df = pd.read_csv('Salary_Data.csv')
 # df = pd.read_csv('Ratings.csv')
 
-def preprocess(df):
+def preprocess(df, model=True):
     kt = KolonTipiTahmini1()
 
     data_dict = {}
     delete_cols = []
 
     for col in df.columns:
-        if df[col].isnull().sum() / len(df) <= 0.5:
-            df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
-        if df[col].isnull().sum() / len(df) > 0.5:
-            df.drop(col, axis=1, inplace=True)
+        df.rename(columns={col: replace_special_characters(col)}, inplace=True)
 
-    for col in df.columns:
-        try:
-            data_dict[col] = kt.fit_transform(df[[col]])[col]
-        except KeyError:
-            continue
+    if model==True:
 
-        if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
-            delete_cols.append(col)
+        for col in df.columns:
+            if df[col].isnull().sum() / len(df) <= 0.5:
+                df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
+            if df[col].isnull().sum() / len(df) > 0.5:
+                df.drop(col, axis=1, inplace=True)
 
-    print("DELETED COLUMNS: ", delete_cols)
-    df = df.drop(columns=delete_cols)
+        for col in df.columns:
+            try:
+                data_dict[col] = kt.fit_transform(df[[col]])[col]
+            except KeyError:
+                continue
+
+            if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
+                delete_cols.append(col)
+
+        print("DELETED COLUMNS: ", delete_cols)
+        df = df.drop(columns=delete_cols)
+    
+    else:
+        necessary_cols = []
+        df_ = df.copy()
+        df_ = df_.dropna()  # Drop all rows with NaN values
+
+        for col in df_.columns:
+            try:
+                data_dict[col] = kt.fit_transform(df_[[col]])[col]
+            except KeyError:
+                continue
+
+            if col in data_dict and not (data_dict[col]["Role"] == "unique" or data_dict[col]["Role"] == "id" or data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "date"):
+                necessary_cols.append(col)
+
+        for col in necessary_cols:
+            if df[col].isnull().sum() / len(df) <= 0.5:
+                df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
+            if df[col].isnull().sum() / len(df) > 0.5:
+                df[col] = df[col].isna().astype(int)
+
+        df = df.dropna()  # Drop all rows with NaN values
+        
+
     return df
 
 #df = preprocess(df)
