@@ -1,12 +1,13 @@
 import React from "react";
 import { Tabs, Form, Input, Button } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
 import { useApp } from "../../context/app.context";
 import "./index.css";
 
 const Authentication: React.FC = () => {
   const [loginForm] = Form.useForm();
   const [registerForm] = Form.useForm();
-  const { login, register } = useApp();
+  const { login, register, loadingAuth } = useApp();
 
   const handleLogin = ({
     email,
@@ -78,8 +79,9 @@ const Authentication: React.FC = () => {
                     className="login-button"
                     type="primary"
                     htmlType="submit"
+                    disabled={loadingAuth}
                   >
-                    Login
+                    {loadingAuth && <LoadingOutlined />} Login
                   </Button>
                 </Form.Item>
               </Form>
@@ -123,8 +125,9 @@ const Authentication: React.FC = () => {
                     className="login-button"
                     type="primary"
                     htmlType="submit"
+                    disabled={loadingAuth}
                   >
-                    Register
+                    {loadingAuth && <LoadingOutlined />} Register
                   </Button>
                 </Form.Item>
               </Form>

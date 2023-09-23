@@ -16,6 +16,7 @@ import {
   IRegister,
   IAuthResponse,
 } from "../containers/Authentication/types/authentication";
+import { downloadFile } from "../utils/downloadFile";
 
 import { preprocessRequest } from "../services/requests/preprocess";
 import { analyzeRequest } from "../services/requests/analyze";
@@ -41,8 +42,10 @@ interface AppContextState {
   updateTargetColumns: (targetColumns?: string[]) => void;
   updateTargetColumn: (targetColumn: string | null) => void;
   updateFile: (file: File | null) => void;
-  loading: boolean;
-  updateLoading: (value: boolean) => void;
+  loadingPreprocessing: boolean;
+  loadingAnalysis: boolean;
+  loadingModels: boolean;
+  loadingAuth: boolean;
 }
 
 const defaultAppContext: AppContextState = {
@@ -61,8 +64,20 @@ const defaultAppContext: AppContextState = {
   updateTargetColumns: () => {},
   updateTargetColumn: () => {},
   updateFile: () => {},
-  loading: false,
-  updateLoading: () => {},
+  loadingPreprocessing: false,
+  loadingAnalysis: false,
+  loadingModels: false,
+  loadingAuth: false,
+};
+
+const useLoadingState = (initialState: boolean) => {
+  const [loading, setLoading] = useState(initialState);
+
+  const updateLoading = useCallback((value: boolean) => {
+    setLoading(value);
+  }, []);
+
+  return [loading, updateLoading] as const;
 };
 
 const useAppContext = (props: AppContextState): AppContextState => {
@@ -72,7 +87,16 @@ const useAppContext = (props: AppContextState): AppContextState => {
   const [targetColumns, setTargetColumns] = useState(props.targetColumns);
   const [targetColumn, setTargetColumn] = useState(props.targetColumn);
   const [file, setFile] = useState(props.file);
-  const [loading, setLoading] = useState(props.loading);
+  const [loadingPreprocessing, updateLoadingPreprocessing] = useLoadingState(
+    props.loadingPreprocessing,
+  );
+  const [loadingAnalysis, updateLoadingAnalysis] = useLoadingState(
+    props.loadingAnalysis,
+  );
+  const [loadingModels, updateLoadingModels] = useLoadingState(
+    props.loadingModels,
+  );
+  const [loadingAuth, updateLoadingAuth] = useLoadingState(props.loadingAuth);
 
   const updateAuthUser = useCallback(
     (authUser: AppContextState["authUser"]) => {
@@ -117,79 +141,69 @@ const useAppContext = (props: AppContextState): AppContextState => {
     [updateTargetColumns, updateTargetColumn, updateAnalysis, updateModels],
   );
 
-  const updateLoading = useCallback((loading: AppContextState["loading"]) => {
-    setLoading(loading);
-  }, []);
-
   const preprocess = (payload: IPreprocessingRequest) => {
-    updateLoading(true);
+    updateLoadingPreprocessing(true);
     preprocessRequest(payload)
       .then((data) => {
-        const url = window.URL.createObjectURL(new Blob([data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", payload.file.name);
-        document.body.appendChild(link);
-        link.click();
-        link?.parentNode?.removeChild(link);
-        updateLoading(false);
+        downloadFile(data, payload.file.name);
+        updateLoadingPreprocessing(false);
       })
       .catch((error: any) => {
-        updateLoading(false);
+        updateLoadingPreprocessing(false);
         throw error;
       });
   };
 
   const analyze = (payload: IAnalysisRequest) => {
-    updateLoading(true);
+    updateLoadingAnalysis(true);
     analyzeRequest(payload)
       .then((data: IAnalysis) => {
         updateAnalysis(data);
-        updateLoading(false);
+        updateLoadingAnalysis(false);
       })
       .catch((error: any) => {
-        updateLoading(false);
+        updateLoadingAnalysis(false);
         throw error;
       });
   };
 
   const runModels = (payload: IModelsRequest) => {
-    updateLoading(true);
+    updateLoadingModels(true);
     modelsRequest(payload)
       .then((data: IModels) => {
         updateModels(data);
-        updateLoading(false);
+        updateLoadingModels(false);
       })
       .catch((error: any) => {
-        updateLoading(false);
+        updateLoadingModels(false);
         throw error;
       });
   };
 
   const login = (payload: ILogin) => {
-    updateLoading(true);
+    updateLoadingAuth(true);
     loginRequest(payload)
       .then((data: IAuthResponse) => {
         UserStorage.storeUser(data);
         updateAuthUser(data);
-        updateLoading(false);
+        updateLoadingAuth(false);
       })
       .catch((error: any) => {
-        updateLoading(false);
+        updateLoadingAuth(false);
         throw error;
       });
   };
 
   const register = (payload: IRegister) => {
-    updateLoading(true);
+    updateLoadingAuth(true);
     registerRequest(payload)
       .then((data: IAuthResponse) => {
         UserStorage.storeUser(data);
-        updateLoading(false);
+        updateLoadingAuth(false);
         updateAuthUser(data);
       })
       .catch((error: any) => {
-        updateLoading(false);
+        updateLoadingAuth(false);
         throw error;
       });
   };
@@ -233,8 +247,10 @@ const useAppContext = (props: AppContextState): AppContextState => {
     updateTargetColumn,
     file,
     updateFile,
-    loading,
-    updateLoading,
+    loadingPreprocessing,
+    loadingAnalysis,
+    loadingModels,
+    loadingAuth,
   };
 };
 
@@ -265,8 +281,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
     updateTargetColumn,
     file,
     updateFile,
-    loading,
-    updateLoading,
+    loadingPreprocessing,
+    loadingAnalysis,
+    loadingModels,
+    loadingAuth,
   } = useAppContext(defaultAppContext);
 
   return (
@@ -287,8 +305,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
         updateTargetColumn,
         file,
         updateFile,
-        loading,
-        updateLoading,
+        loadingPreprocessing,
+        loadingAnalysis,
+        loadingModels,
+        loadingAuth,
       }}
     >
       {children}

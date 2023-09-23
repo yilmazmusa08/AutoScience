@@ -1,5 +1,10 @@
 import React from "react";
-import { InboxOutlined, LoadingOutlined } from "@ant-design/icons";
+import {
+  InboxOutlined,
+  LoadingOutlined,
+  CopyOutlined,
+  DownloadOutlined,
+} from "@ant-design/icons";
 import {
   Row,
   Col,
@@ -10,9 +15,12 @@ import {
   Space,
   Select,
   Spin,
+  Tooltip,
 } from "antd";
 import { useApp } from "../../context/app.context";
 import { isFileSizeWithinLimit } from "../../utils/validations";
+import { downloadFile } from "../../utils/downloadFile";
+import { copyToClipboard } from "../../utils/copyToClipboard";
 import constant from "../../constants";
 import Papa from "papaparse";
 import "./index.css";
@@ -29,7 +37,7 @@ const Models: React.FC = () => {
     targetColumn,
     file,
     updateFile,
-    loading,
+    loadingModels,
   } = useApp();
 
   const handleModels = () => {
@@ -102,9 +110,9 @@ const Models: React.FC = () => {
           <Button
             type="primary"
             onClick={handleModels}
-            disabled={!file || loading}
+            disabled={!file || loadingModels}
           >
-            {loading ? (
+            {loadingModels ? (
               <>
                 <LoadingOutlined /> Running Models...
               </>
@@ -114,10 +122,30 @@ const Models: React.FC = () => {
           </Button>
         </Space>
       </Row>
-      <Row>
-        <Typography.Title level={5}>Results</Typography.Title>
+      <Row justify="space-between">
+        <Typography.Title className="results-title" level={5}>
+          Results
+        </Typography.Title>
+        {models && (
+          <Space wrap>
+            <Tooltip title="Copy to Clipboard">
+              <Button
+                type="primary"
+                icon={<CopyOutlined />}
+                onClick={() => copyToClipboard(JSON.stringify(models, null, 2))}
+              />
+            </Tooltip>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={() => downloadFile(models, "model-results.json")}
+            >
+              Download
+            </Button>
+          </Space>
+        )}
       </Row>
-      <Spin wrapperClassName="results-container" spinning={loading}>
+      <Spin wrapperClassName="results-container" spinning={loadingModels}>
         <Row className="results-container">
           {models && (
             <Typography.Paragraph className="results-text">

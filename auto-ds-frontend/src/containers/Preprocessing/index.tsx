@@ -9,7 +9,7 @@ import "./index.css";
 const { Dragger } = Upload;
 
 const Preprocessing: React.FC = () => {
-  const { preprocess, updateFile, file, loading } = useApp();
+  const { preprocess, updateFile, file, loadingPreprocessing } = useApp();
 
   const handleDownload = () => {
     if (file) {
@@ -56,14 +56,14 @@ const Preprocessing: React.FC = () => {
           <Button
             type="primary"
             onClick={handleDownload}
-            disabled={!file || loading}
+            disabled={!file || loadingPreprocessing}
           >
-            {loading ? (
+            {loadingPreprocessing ? (
               <>
                 <LoadingOutlined /> Preprocessing...
               </>
             ) : (
-              "Download"
+              "Preprocess"
             )}
           </Button>
         </Space>
