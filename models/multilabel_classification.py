@@ -29,6 +29,7 @@ def multiclass_classification(df, cv=5, target=None,
     X = scaler.fit_transform(X)
 
     results = {}
+    model_list = []
 
     for model in models:
         if model == "Logistic Regression":
@@ -37,6 +38,7 @@ def multiclass_classification(df, cv=5, target=None,
             lr_scores = cross_validate(lr_model, X, y, cv=cv, scoring=metrics)
             lr_scores_mean = {metric: round(np.mean(lr_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Logistic Regression'] = lr_scores_mean
+            model_list.append(('Logistic Regression', lr_model, lr_scores_mean))
 
         elif model == "Random Forest":
             # Random Forest Model
@@ -44,6 +46,7 @@ def multiclass_classification(df, cv=5, target=None,
             rf_scores = cross_validate(rf_model, X, y, cv=cv, scoring=metrics)
             rf_scores_mean = {metric: round(np.mean(rf_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Random Forest'] = rf_scores_mean
+            model_list.append(('Random Forest', rf_model, rf_scores_mean))
 
         elif model == "Decision Tree Classifier":
             # Decision Tree Classifier
@@ -51,6 +54,7 @@ def multiclass_classification(df, cv=5, target=None,
             dt_scores = cross_validate(dt_model, X, y, cv=cv, scoring=metrics)
             dt_scores_mean = {metric: round(np.mean(dt_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Decision Tree Classifier'] = dt_scores_mean
+            model_list.append(('Decision Tree Classifier', dt_model, dt_scores_mean))
 
         elif model == "Gradient Boosting Classifier":
             # Gradient Boosting Classifier
@@ -58,6 +62,7 @@ def multiclass_classification(df, cv=5, target=None,
             gb_scores = cross_validate(gb_model, X, y, cv=cv, scoring=metrics)
             gb_scores_mean = {metric: round(np.mean(gb_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Gradient Boosting Classifier'] = gb_scores_mean
+            model_list.append(('Gradient Boosting Classifier', gb_model, gb_scores_mean))
 
         elif model == "Naive Bayes":
             # Naive Bayes
@@ -65,6 +70,7 @@ def multiclass_classification(df, cv=5, target=None,
             nb_scores = cross_validate(nb_model, X, y, cv=cv, scoring=metrics)
             nb_scores_mean = {metric: round(np.mean(nb_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Naive Bayes'] = nb_scores_mean
+            model_list.append(('Naive Bayes', nb_model, nb_scores_mean))
 
         elif model == "K-Nearest Neighbors":
             # K-Nearest Neighbors
@@ -72,9 +78,24 @@ def multiclass_classification(df, cv=5, target=None,
             knn_scores = cross_validate(knn_model, X, y, cv=cv, scoring=metrics)
             knn_scores_mean = {metric: round(np.mean(knn_scores[f'test_{metric}']), 2) for metric in metrics}
             results['K-Nearest Neighbors'] = knn_scores_mean
+            model_list.append(('K-Nearest Neighbors', knn_model, knn_scores_mean))
 
 
-    results = {"Results": results}
-    return results
+    # Select the top 5 models
+    top_5_models = model_list[:5]
+
+    best_models = {}
+    for idx, (model_name, model, scores) in enumerate(top_5_models, 1):
+        best_models[f"{idx}) Model: {model_name}"] = {
+            'Parameters': model.get_params(),
+            'Metrics': scores
+        }
+
+    results1 = {"Model's": best_models}
+    results2 = {"Result's": results}
+
+    return "Model's ------->>",results1,"********************************","Result's ------->>", results2
+
+
 
 
