@@ -18,7 +18,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
 warnings.filterwarnings('ignore')
-from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters
+from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters, fill_remaining_na_special
 
 
 # df = pd.read_csv('time2.csv')
@@ -54,6 +54,8 @@ def preprocess(df, model=True):
 
         print("DELETED COLUMNS: ", delete_cols)
         df = df.drop(columns=delete_cols)
+
+        df = df.dropna()  # Drop all rows with NaN values
     
     else:
         necessary_cols = []
@@ -75,6 +77,7 @@ def preprocess(df, model=True):
             if df[col].isnull().sum() / len(df) > 0.5:
                 df[col] = df[col].isna().astype(int)
 
+        df = fill_remaining_na_special(df)
         df = df.dropna()  # Drop all rows with NaN values
         
 

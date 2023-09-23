@@ -159,7 +159,7 @@ def col_types(dataframe, cat_th=10, car_th=20):
 
 import pandas as pd
 
-def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=5):
+def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=2):
     forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]
 
     for _ in range(max_attempts):
@@ -197,6 +197,53 @@ def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=5
 
     # If all attempts are exhausted, return None
     return None
+
+def fill_remaining_na_special(df, nan_replacement=-9999):
+    """
+    Fill remaining NaN and specific values in the DataFrame using a specialized method.
+    
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing NaN values and specific values.
+        nan_replacement: The specific value to be treated as NaN during similarity calculation.
+    
+    Returns:
+        pd.DataFrame: The DataFrame with NaN and specific values filled using the specified method.
+    """
+    # Create a copy of the DataFrame to work with
+    filled_df = df.copy()
+    
+    # Replace NaN values with a specific placeholder value
+    filled_df.fillna(nan_replacement, inplace=True)
+    
+    # Fill numeric columns using a specialized method (cosine similarity in this example)
+    numeric_columns = filled_df.select_dtypes(include=[np.number]).columns
+    
+    for col in numeric_columns:
+        for index, row in filled_df.iterrows():
+            if row[col] == nan_replacement:
+                # Create a mask to exclude specific values (e.g., -9999)
+                mask = filled_df[col] != nan_replacement
+                
+                if mask.any():
+                    # Convert row[col] to a NumPy array and then reshape it
+                    value = np.array([row[col]])
+                    similarities = cosine_similarity(value.reshape(1, -1),
+                                                     filled_df.loc[mask][col].values.reshape(-1, 1))
+                    
+                    # Find the most similar non-specific row
+                    most_similar_index = np.argmax(similarities)
+                    most_similar_row = filled_df.loc[mask].iloc[most_similar_index]
+                    
+                    # Fill NaN value in the current numeric column with the most similar row's value
+                    filled_df.at[index, col] = most_similar_row[col]
+    
+    # Fill object columns with mode value
+    object_columns = filled_df.select_dtypes(include=[object])
+    
+    for column in object_columns:
+        filled_df[column].fillna(filled_df[column].mode().iloc[0], inplace=True)
+    
+    return filled_df
 
 def get_Date_Column(DataFrame) -> pd.DataFrame:
     if not isinstance(DataFrame, pd.DataFrame):
