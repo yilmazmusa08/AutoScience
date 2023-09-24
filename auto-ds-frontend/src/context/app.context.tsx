@@ -16,6 +16,7 @@ import {
   IRegister,
   IAuthResponse,
 } from "../containers/Authentication/types/authentication";
+import { IFeedbackRequest } from "../containers/Feedback/types/feedback";
 import { downloadFile } from "../utils/downloadFile";
 
 import { preprocessRequest } from "../services/requests/preprocess";
@@ -23,6 +24,7 @@ import { analyzeRequest } from "../services/requests/analyze";
 import { modelsRequest } from "../services/requests/models";
 import { loginRequest } from "../services/requests/login";
 import { registerRequest } from "../services/requests/register";
+import { createFeedbackRequest } from "../services/requests/feedback";
 
 import { UserStorage, AuthUser } from "../services/UserStorage";
 
@@ -42,10 +44,12 @@ interface AppContextState {
   updateTargetColumns: (targetColumns?: string[]) => void;
   updateTargetColumn: (targetColumn: string | null) => void;
   updateFile: (file: File | null) => void;
+  createFeedback: (payload: IFeedbackRequest) => void;
   loadingPreprocessing: boolean;
   loadingAnalysis: boolean;
   loadingModels: boolean;
   loadingAuth: boolean;
+  loadingFeedback: boolean;
 }
 
 const defaultAppContext: AppContextState = {
@@ -64,10 +68,12 @@ const defaultAppContext: AppContextState = {
   updateTargetColumns: () => {},
   updateTargetColumn: () => {},
   updateFile: () => {},
+  createFeedback: () => {},
   loadingPreprocessing: false,
   loadingAnalysis: false,
   loadingModels: false,
   loadingAuth: false,
+  loadingFeedback: false,
 };
 
 const useLoadingState = (initialState: boolean) => {
@@ -97,6 +103,9 @@ const useAppContext = (props: AppContextState): AppContextState => {
     props.loadingModels,
   );
   const [loadingAuth, updateLoadingAuth] = useLoadingState(props.loadingAuth);
+  const [loadingFeedback, updateLoadingFeedback] = useLoadingState(
+    props.loadingFeedback,
+  );
 
   const updateAuthUser = useCallback(
     (authUser: AppContextState["authUser"]) => {
@@ -141,71 +150,77 @@ const useAppContext = (props: AppContextState): AppContextState => {
     [updateTargetColumns, updateTargetColumn, updateAnalysis, updateModels],
   );
 
-  const preprocess = (payload: IPreprocessingRequest) => {
+  const preprocess = async (payload: IPreprocessingRequest) => {
     updateLoadingPreprocessing(true);
-    preprocessRequest(payload)
-      .then((data) => {
-        downloadFile(data, payload.file.name);
-        updateLoadingPreprocessing(false);
-      })
-      .catch((error: any) => {
-        updateLoadingPreprocessing(false);
-        throw error;
-      });
+    try {
+      const data = await preprocessRequest(payload);
+      downloadFile(data, payload.file.name);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingPreprocessing(false);
+    }
   };
 
-  const analyze = (payload: IAnalysisRequest) => {
+  const analyze = async (payload: IAnalysisRequest) => {
     updateLoadingAnalysis(true);
-    analyzeRequest(payload)
-      .then((data: IAnalysis) => {
-        updateAnalysis(data);
-        updateLoadingAnalysis(false);
-      })
-      .catch((error: any) => {
-        updateLoadingAnalysis(false);
-        throw error;
-      });
+    try {
+      const data: IAnalysis = await analyzeRequest(payload);
+      updateAnalysis(data);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingAnalysis(false);
+    }
   };
 
-  const runModels = (payload: IModelsRequest) => {
+  const runModels = async (payload: IModelsRequest) => {
     updateLoadingModels(true);
-    modelsRequest(payload)
-      .then((data: IModels) => {
-        updateModels(data);
-        updateLoadingModels(false);
-      })
-      .catch((error: any) => {
-        updateLoadingModels(false);
-        throw error;
-      });
+    try {
+      const data: IModels = await modelsRequest(payload);
+      updateModels(data);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingModels(false);
+    }
   };
 
-  const login = (payload: ILogin) => {
-    updateLoadingAuth(true);
-    loginRequest(payload)
-      .then((data: IAuthResponse) => {
-        UserStorage.storeUser(data);
-        updateAuthUser(data);
-        updateLoadingAuth(false);
-      })
-      .catch((error: any) => {
-        updateLoadingAuth(false);
-        throw error;
-      });
+  const createFeedback = async (payload: IFeedbackRequest) => {
+    updateLoadingFeedback(true);
+    try {
+      await createFeedbackRequest(payload);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingFeedback(false);
+    }
   };
 
-  const register = (payload: IRegister) => {
+  const login = async (payload: ILogin) => {
     updateLoadingAuth(true);
-    registerRequest(payload)
-      .then((data: IAuthResponse) => {
-        UserStorage.storeUser(data);
-        updateLoadingAuth(false);
-        updateAuthUser(data);
-      })
-      .catch((error: any) => {
-        updateLoadingAuth(false);
-        throw error;
-      });
+    try {
+      const data: IAuthResponse = await loginRequest(payload);
+      UserStorage.storeUser(data);
+      updateAuthUser(data);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingAuth(false);
+    }
+  };
+
+  const register = async (payload: IRegister) => {
+    updateLoadingAuth(true);
+    try {
+      const data: IAuthResponse = await registerRequest(payload);
+      UserStorage.storeUser(data);
+      updateAuthUser(data);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingAuth(false);
+    }
   };
 
   const logout = () => {
@@ -247,10 +262,12 @@ const useAppContext = (props: AppContextState): AppContextState => {
     updateTargetColumn,
     file,
     updateFile,
+    createFeedback,
     loadingPreprocessing,
     loadingAnalysis,
     loadingModels,
     loadingAuth,
+    loadingFeedback,
   };
 };
 
@@ -281,10 +298,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
     updateTargetColumn,
     file,
     updateFile,
+    createFeedback,
     loadingPreprocessing,
     loadingAnalysis,
     loadingModels,
     loadingAuth,
+    loadingFeedback,
   } = useAppContext(defaultAppContext);
 
   return (
@@ -305,10 +324,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
         updateTargetColumn,
         file,
         updateFile,
+        createFeedback,
         loadingPreprocessing,
         loadingAnalysis,
         loadingModels,
         loadingAuth,
+        loadingFeedback,
       }}
     >
       {children}

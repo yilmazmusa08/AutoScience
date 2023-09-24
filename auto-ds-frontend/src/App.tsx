@@ -5,6 +5,7 @@ import Authentication from "./containers/Authentication";
 import Preprocessing from "./containers/Preprocessing";
 import Analysis from "./containers/Analysis";
 import Models from "./containers/Models";
+import Feedback from "./containers/Feedback";
 import { useApp } from "./context/app.context";
 import {
   FileDoneOutlined,
@@ -74,6 +75,7 @@ const App: React.FC = () => {
                 ) : (
                   selectedKey === "3" && <Models />
                 )}
+                <Feedback />
               </>
             )}
           </Content>

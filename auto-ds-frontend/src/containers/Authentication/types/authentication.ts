@@ -1,4 +1,4 @@
-import { IUser } from "../../User/types/user";
+import { IAuthUser } from "../../User/types/user";
 
 export interface ILogin {
   email: string;
@@ -15,5 +15,5 @@ export interface IRegister {
 export interface IAuthResponse {
   access: string;
   refresh: string;
-  user: IUser;
+  user: IAuthUser;
 }

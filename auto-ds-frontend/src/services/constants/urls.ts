@@ -20,3 +20,7 @@ export const AnalysisUrl = {
 export const ModelsUrl = {
   RunModels: "/models/",
 };
+
+export const FeedbackUrl = {
+  CreateFeedback: "/feedback/",
+};

@@ -13,7 +13,7 @@ backendInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.log("error", error?.message);
+    console.error("error", error?.message);
     message.error(error?.message);
     return Promise.reject(error?.message);
   },

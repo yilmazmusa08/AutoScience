@@ -1,0 +1,21 @@
+.ant-float-btn-body {
+  padding: 15px;
+}
+.ant-float-btn-description {
+  font-size: 14px !important;
+}
+
+.float-button {
+  right: 0;
+  top: 50%;
+  border-radius: 8px 0px 0px 8px;
+  writing-mode: sideways-lr;
+}
+
+.feedback-icon {
+  font-size: 30px;
+}
+
+.feedback-input {
+  margin-top: 20px;
+}
