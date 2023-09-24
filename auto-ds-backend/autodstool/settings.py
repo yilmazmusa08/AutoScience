@@ -31,7 +31,7 @@ CORS_ORIGIN_WHITELIST = [
     'http://localhost',
     'http://localhost:3000',
 ]
-
+CSRF_TRUSTED_ORIGINS = ['http://localhost']
 # Application definition
 
 DJANGO_APPS = [
@@ -53,9 +53,13 @@ DJANGO_APPS = [
     'corsheaders',
 ]
 
+LOCAL_APPS = [
+    'autodstool.feedback.apps.FeedbackConfig',
+]
+
 THIRD_PARTY_APPS = []
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS
+INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
 
 SITE_ID = 1
 

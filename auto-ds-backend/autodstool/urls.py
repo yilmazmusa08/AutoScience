@@ -38,4 +38,5 @@ urlpatterns = [
     path("api/", include("autodstool.preprocessing.urls")),
     path("api/", include("autodstool.analysis.urls")),
     path("api/", include("autodstool.models.urls")),
+    path("api/", include("autodstool.api_router")),
 ]

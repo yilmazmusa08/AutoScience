@@ -1,7 +1,8 @@
 from django.apps import AppConfig
 from django.utils.translation import gettext_lazy as _
 
-class ModelsConfig(AppConfig):
+
+class FeedbackConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'autodstool.models'
-    verbose_name = _("Models")
+    name = 'autodstool.feedback'
+    verbose_name = _("Feedback")

@@ -4,8 +4,11 @@ FROM python:3.10.10-alpine
 # Set the working directory in the container
 WORKDIR /code
 
-# Copy the requirements.txt file into the container
-COPY requirements.txt /code/
+# Copy the base requirements.txt file into the container
+COPY requirements_base.txt /code/
+
+# Copy the additional requirements file into the container
+COPY requirements_ds.txt /code/
 
 # Install necessary system dependencies (if not already installed)
 RUN apk update && apk upgrade && \
@@ -38,8 +41,11 @@ RUN pip install --upgrade cmake ninja
 # Upgrade pip and setuptools (if not already upgraded)
 RUN pip install --upgrade pip setuptools
 
-# Install Python packages from requirements.txt (if not already installed)
-RUN pip install --no-cache-dir -r requirements.txt
+# Install core Python packages from requirements_base.txt (if not already installed)
+RUN pip install --no-cache-dir -r requirements_base.txt
+
+# Install additional Python packages from requirements_ds.txt (if not already installed)
+RUN pip install --no-cache-dir -r requirements_ds.txt
 
 # Copy the entire project into the container
 COPY . /code/
