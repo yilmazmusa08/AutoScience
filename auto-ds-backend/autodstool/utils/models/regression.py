@@ -30,6 +30,8 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
     scaler = StandardScaler()
 
     results = {}
+    model_list = []
+
 
     for model in models:
         if model == "Linear Regression":
@@ -39,6 +41,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             lr_scores = cross_validate(lr_model, X, y, cv=cv, scoring=metrics)
             lr_scores_mean = {metric: round(np.mean(lr_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Linear Regression'] = lr_scores_mean
+            model_list.append(('Linear Regression', lr_model, lr_scores_mean))
 
         elif model == "Random Forest":
             # Random Forest Model
@@ -46,6 +49,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             rf_scores = cross_validate(rf_model, X, y, cv=cv, scoring=metrics)
             rf_scores_mean = {metric: round(np.mean(rf_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Random Forest'] = rf_scores_mean
+            model_list.append(('Random Forest', rf_model, rf_scores_mean))
 
         elif model == "Decision Tree Regressor":
             # Decision Tree Regressor
@@ -53,6 +57,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             dt_scores = cross_validate(dt_model, X, y, cv=cv, scoring=metrics)
             dt_scores_mean = {metric: round(np.mean(dt_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Decision Tree Regressor'] = dt_scores_mean
+            model_list.append(('Decision Tree Regressor', dt_model, dt_scores_mean))
 
         elif model == "Gradient Boosting Regressor":
             # Gradient Boosting Regressor
@@ -60,6 +65,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             gb_scores = cross_validate(gb_model, X, y, cv=cv, scoring=metrics)
             gb_scores_mean = {metric: round(np.mean(gb_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Gradient Boosting Regressor'] = gb_scores_mean
+            model_list.append(('Gradient Boosting Regressor', gb_model, gb_scores_mean))
 
         elif model == "Ridge Regression":
             # Ridge Regression
@@ -67,6 +73,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             ridge_scores = cross_validate(ridge_model, X, y, cv=cv, scoring=metrics)
             ridge_scores_mean = {metric: round(np.mean(ridge_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Ridge Regression'] = ridge_scores_mean
+            model_list.append(('Ridge Regression', ridge_model, ridge_scores_mean))
 
         elif model == "Lasso Regression":
             # Lasso Regression
@@ -74,6 +81,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             lasso_scores = cross_validate(lasso_model, X, y, cv=cv, scoring=metrics)
             lasso_scores_mean = {metric: round(np.mean(lasso_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Lasso Regression'] = lasso_scores_mean
+            model_list.append(('Ridge Regression', lasso_model, lasso_scores_mean))
 
         elif model == "Elastic Net Regression":
             # Elastic Net Regression
@@ -81,6 +89,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             elasticnet_scores = cross_validate(elasticnet_model, X, y, cv=cv, scoring=metrics)
             elasticnet_scores_mean = {metric: round(np.mean(elasticnet_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Elastic Net Regression'] = elasticnet_scores_mean
+            model_list.append(('Elastic Net Regression', elasticnet_model, elasticnet_scores_mean))
 
         elif model == "Polynomial Regression":
             poly = PolynomialFeatures(degree=2)
@@ -91,6 +100,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             poly_scores = cross_validate(lr_model, X_poly, y, cv=cv, scoring=metrics)
             poly_scores_mean = {metric: round(np.mean(poly_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Polynomial Regression'] = poly_scores_mean
+            model_list.append(('Polynomial Regression', lr_model, poly_scores_mean))
 
         elif model == "Support Vector Regression":
             # Support Vector Regression
@@ -98,6 +108,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             svr_scores = cross_validate(svr_model, X, y, cv=cv, scoring=metrics)
             svr_scores_mean = {metric: round(np.mean(svr_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Support Vector Regression'] = svr_scores_mean
+            model_list.append(('Support Vector Machines', svm_model, svm_scores_mean))
 
         elif model == "XGBoost Regression":
             # XGBoost Regression
@@ -112,9 +123,22 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             lgbm_scores = cross_validate(lgbm_model, X, y, cv=cv, scoring=metrics)
             lgbm_scores_mean = {metric: round(np.mean(lgbm_scores[f'test_{metric}']), 2) for metric in metrics}
             results['LightGBM Regression'] = lgbm_scores_mean
+            model_list.append(('LightGBM', lgbm_model, lgbm_scores_mean))
+        model_list.sort(key=lambda x: x[2]['accuracy'], reverse=True)
 
+    # Select the top 5 models
+    top_5_models = model_list[:5]
 
-    results = {"Results": results}
-    return results
+    best_models = {}
+    for idx, (model_name, model, scores) in enumerate(top_5_models, 1):
+        best_models[f"{idx}) Model: {model_name}"] = {
+            'Parameters': model.get_params(),
+            'Metrics': scores
+        }
 
+    results1 = {"Model's": best_models}
+    results2 = {"Result's": results}
+    output = {**results1, **results2}
+
+    return output
 

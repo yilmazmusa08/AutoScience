@@ -116,6 +116,6 @@ def binary_classification(df, cv=5, target=None, models=['Logistic Regression', 
 
     results1 = {"Model's": best_models}
     results2 = {"Result's": results}
+    output = {**results1, **results2}
 
-    return "Model's ------->>",results1,"********************************","Result's ------->>", results2
-
+    return output
