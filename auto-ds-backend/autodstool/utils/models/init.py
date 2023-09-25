@@ -253,7 +253,10 @@ def get_problem_type(df, target=None):
         params = ""
         return problem_type, params
 
-def create_model(df, problem_type=None, params=[]):
+def create_model(df, problem_type=None, params=[], max_rows=5000):
+
+    if len(data) > max_rows:
+        data=data.sample(n=max_rows)
 
     if problem_type == "binary classification":
         print("params : ", params)
@@ -296,11 +299,11 @@ class KolonTipiTahmini1:
     def __init__(self, threshold=20):
         self.threshold=threshold
         
-    def fit_transform(self, data, columns=None):
+    def fit_transform(self, data, columns=None, max_rows=5000):
         if not isinstance(data, pd.DataFrame):
             data=pd.DataFrame(data)
-        if len(data) > 5000:
-            data=data.sample(n=5000)
+        if len(data) > max_rows:
+            data=data.sample(n=max_rows)
 
 
         # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
@@ -390,7 +393,7 @@ class KolonTipiTahmini1:
         return result
     
 
-def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
+def analysis(df: pd.DataFrame, target=None, threshold_target=0.2, max_rows=5000):
     """
     This function is designed to analyze a dataset. The function takes the following parameters:
     
@@ -501,8 +504,8 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2):
             X.drop(target, axis=1, inplace=True)
 
         if target is not None:
-            if len(X) > 5000:
-                X = X.sample(n=5000, random_state=42)
+            if len(X) > max_rows:
+                X = X.sample(n=max_rows, random_state=42)
                 y = df.loc[X.index, target]
             else:
                 y = df[target]
