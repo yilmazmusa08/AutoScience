@@ -108,7 +108,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             svr_scores = cross_validate(svr_model, X, y, cv=cv, scoring=metrics)
             svr_scores_mean = {metric: round(np.mean(svr_scores[f'test_{metric}']), 2) for metric in metrics}
             results['Support Vector Regression'] = svr_scores_mean
-            model_list.append(('Support Vector Machines', svm_model, svm_scores_mean))
+            model_list.append(('Support Vector Machines', svr_model, svr_scores_mean))
 
         elif model == "XGBoost Regression":
             # XGBoost Regression
@@ -124,7 +124,7 @@ def regression(df, cv=5, target=None, models=['Linear Regression', 'Random Fores
             lgbm_scores_mean = {metric: round(np.mean(lgbm_scores[f'test_{metric}']), 2) for metric in metrics}
             results['LightGBM Regression'] = lgbm_scores_mean
             model_list.append(('LightGBM', lgbm_model, lgbm_scores_mean))
-        model_list.sort(key=lambda x: x[2]['accuracy'], reverse=True)
+        model_list.sort(key=lambda x: x[2]['r2'], reverse=True)
 
     # Select the top 5 models
     top_5_models = model_list[:5]
