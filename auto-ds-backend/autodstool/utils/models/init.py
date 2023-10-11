@@ -153,9 +153,11 @@ def get_problem_type(df, target=None):
 
     for col in df.columns:
         numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
-        if df[col].dtype == "object" and df[col].nunique() < 20:
+        if df[col].dtype == "object" and df[col].nunique() >= 10:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col])
+        elif df[col].dtype == "object" and df[col].nunique() < 10:
+            df = pd.get_dummies(df, columns=[col])
 
                 
     problem_type = None
@@ -581,10 +583,12 @@ def analysis(df: pd.DataFrame, target=None, threshold_target=0.2, max_rows=5000)
 ################################################################################################
 def calculate_pca(df, comp_ratio=0.95, target=None):
     for col in df.columns:
-        if df[col].dtype == 'object':
-            if df[col].nunique() < 20:
-                le = LabelEncoder()
-                df[col] = le.fit_transform(df[col])
+        if df[col].dtype == "object" and df[col].nunique() >= 10:
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+        elif df[col].dtype == "object" and df[col].nunique() < 10:
+            df = pd.get_dummies(df, columns=[col])
+            
     if target is not None:
         df = df.drop(columns=[target])
     df.fillna(df.mean(), inplace=True)
