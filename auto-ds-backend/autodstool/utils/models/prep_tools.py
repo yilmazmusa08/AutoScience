@@ -157,8 +157,18 @@ def col_types(dataframe, cat_th=10, car_th=20):
     return cat_cols, num_cols, cat_but_car + num_but_car, date_cols
 
 
-import pandas as pd
-
+def clean_dataframe(df, forbidden_symbols=["'", '"', "/", "[", "]", "{", "}", "(", ")", " "]):
+    for col in df.columns:
+        col_cleaned = col
+        for symbol in forbidden_symbols:
+            col_cleaned = col_cleaned.replace(symbol, "")
+        
+        col_cleaned = col_cleaned.strip()  # Remove leading and trailing spaces
+        df.rename(columns={col: col_cleaned}, inplace=True)
+        df[col_cleaned] = df[col_cleaned].astype(str).str.replace(symbol, "")
+    
+    return df
+    
 def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=2):
     forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]
 
@@ -241,7 +251,10 @@ def fill_remaining_na_special(df, nan_replacement=-9999):
     object_columns = filled_df.select_dtypes(include=[object])
     
     for column in object_columns:
-        filled_df[column].fillna(filled_df[column].mode().iloc[0], inplace=True)
+        mode_result = filled_df[column].mode()
+        if not mode_result.empty:
+            filled_df[column].fillna(mode_result.iloc[0], inplace=True)
+
     
     return filled_df
 

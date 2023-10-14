@@ -17,8 +17,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
-warnings.filterwarnings('ignore')
-from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters, fill_remaining_na_special
+from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters, fill_remaining_na_special, clean_dataframe
 
 
 # df = pd.read_csv('time2.csv')
@@ -32,8 +31,7 @@ def preprocess(df, model=True):
     data_dict = {}
     delete_cols = []
 
-    for col in df.columns:
-        df.rename(columns={col: replace_special_characters(col)}, inplace=True)
+    df = clean_dataframe(df)
 
     if model==True:
 
