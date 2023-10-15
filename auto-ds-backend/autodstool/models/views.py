@@ -18,6 +18,7 @@ class ModelsViews(APIView):
             df = serializer.validated_data.get('file')
             target_column = serializer.validated_data.get('target_column')
 
+            df = clean_dataframe(df)
             df = preprocess(df)
             problem_type, params = get_problem_type(df, target=target_column) # problem_type and params 
             output = create_model(df=df, problem_type=problem_type, params=params)
