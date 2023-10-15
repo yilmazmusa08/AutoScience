@@ -18,6 +18,8 @@ class AnalysisViews(APIView):
             df = serializer.validated_data.get('file')
             target_column = serializer.validated_data.get('target_column')
 
+            df = clean_dataframe(df)
+            df = preprocess(df)
             output = analysis(df=df, target=target_column)
             result_dict = calculate_pca(df.select_dtypes(include=['float', 'int']))
             output['PCA'] = {
