@@ -255,8 +255,8 @@ def get_problem_type(df, target=None):
 
 def create_model(df, problem_type=None, params=[], max_rows=5000):
 
-    if len(data) > max_rows:
-        data=data.sample(n=max_rows)
+    if len(df) > max_rows:
+        df=df.sample(n=max_rows)
 
     if problem_type == "binary classification":
         print("params : ", params)
