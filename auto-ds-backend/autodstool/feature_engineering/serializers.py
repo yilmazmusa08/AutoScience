@@ -13,14 +13,9 @@ OPERATION_CHOICES = (
     ('take_first_n', 'Take First N'),
     ('take_last_n', 'Take Last N'),
     ('create_transformed_column', 'Create Transformed Column'),
+    ('scale_column_in_dataframe', 'Normalize The Column'),
     ('replace_values', 'Replace Values'),
     ('create_flag_column', 'Create Flag Column'),
-)
-
-TRANSFORM_TYPE_CHOICES = (
-    ('log', 'Logarithm Operation'),
-    ('power', 'Power Operation'),
-    ('root', 'Root Operation'),
 )
 
 METHOD_CHOICES = (
@@ -29,6 +24,19 @@ METHOD_CHOICES = (
     ('multiply', 'Multiplication Operation'),
     ('divide', 'Division Operation'),
 )
+
+TRANSFORM_TYPE_CHOICES = (
+    ('log', 'Logarithm Operation'),
+    ('power', 'Power Operation'),
+    ('root', 'Root Operation'),
+)
+
+SCALER_TYPE_CHOICES = (
+    ('StandardScaler', 'StandardScaler Operation'),
+    ('MinMaxScaler', 'MinMaxScaler Operation'),
+    ('RobustScaler', 'RobustScaler Operation'),
+)
+
 
 
 class FeatureEngineeringSerializer(serializers.Serializer):
@@ -39,6 +47,7 @@ class FeatureEngineeringSerializer(serializers.Serializer):
     method = serializers.ChoiceField(choices=METHOD_CHOICES)
     n = serializers.IntegerField(required=False)
     transform_type = serializers.ChoiceField(choices=TRANSFORM_TYPE_CHOICES, required=False)
+    scaler_type = serializers.ChoiceField(choices=SCALER_TYPE_CHOICES, required=False)
     val_search = serializers.CharField(max_length=256, required=False)
     val_replace = serializers.CharField(max_length=256, required=False)
 
