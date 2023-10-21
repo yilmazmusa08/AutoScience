@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 def perform_operation(df, col_1, col_2, operation='add'):
     """
@@ -203,7 +204,6 @@ def create_flag_column(df, col_name, val_search):
 
     return df
 
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 def scale_column_in_dataframe(df, col_name, scaler_type):
     # Create a copy of the original DataFrame
