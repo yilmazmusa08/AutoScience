@@ -5,7 +5,7 @@ services:
     build:
       context: ./auto-ds-backend
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    # command: python manage.py runserver 0.0.0.0:8000
     env_file:
       - ./auto-ds-backend/.env
     volumes:
@@ -36,6 +36,8 @@ services:
       - ./auto-ds-frontend/.env
     volumes:
       - ./auto-ds-frontend:/app
+    networks:
+      - auto-ds-frontend
     ports:
       - 3000:3000
     profiles:
@@ -49,3 +51,6 @@ services:
       - 80:80
     depends_on:
       - frontend-prod
+
+networks:
+  auto-ds-frontend: {}

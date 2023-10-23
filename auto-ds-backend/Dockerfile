@@ -51,4 +51,7 @@ RUN pip install --no-cache-dir -r requirements_ds.txt
 COPY . /code/
 
 # Specify the command to run your application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Specify the command to run your application with Gunicorn
+CMD ["gunicorn", "autodstool.wsgi:application", "--bind", "0.0.0.0:8000", "--worker-class", "gevent", "--timeout", "600", "--workers", "16", "--chdir=/code"]
