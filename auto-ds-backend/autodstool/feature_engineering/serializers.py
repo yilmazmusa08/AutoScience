@@ -40,6 +40,7 @@ SCALER_TYPE_CHOICES = (
 
 
 class FeatureEngineeringSerializer(serializers.Serializer):
+    file = serializers.FileField(use_url=False, validators=[validate_file_size])
     operation = serializers.ChoiceField(choices=OPERATION_CHOICES)
     col_name = serializers.CharField(max_length=256, required=False)
     col_1 = serializers.CharField(max_length=256, required=False)
