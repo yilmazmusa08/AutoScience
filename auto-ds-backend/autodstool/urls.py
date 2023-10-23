@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 
+    path("api/", include("autodstool.feature_engineering.urls")),
     path("api/", include("autodstool.preprocessing.urls")),
     path("api/", include("autodstool.analysis.urls")),
     path("api/", include("autodstool.models.urls")),
