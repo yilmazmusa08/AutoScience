@@ -48,7 +48,7 @@ class FeatureEngineeringSerializer(serializers.Serializer):
     n = serializers.IntegerField(required=False)
     Q1 = serializers.IntegerField(required=False)
     Q3 = serializers.IntegerField(required=False)
-    remove = serializers.BooleanField(bool=True)
+    remove = serializers.BooleanField()
     transform_type = serializers.ChoiceField(choices=TRANSFORM_TYPE_CHOICES, required=False)
     scaler_type = serializers.ChoiceField(choices=SCALER_TYPE_CHOICES, required=False)
     val_search = serializers.CharField(max_length=256, required=False)
