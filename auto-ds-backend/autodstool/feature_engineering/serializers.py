@@ -16,6 +16,7 @@ OPERATION_CHOICES = (
     ('scale_column_in_dataframe', 'Normalize The Column'),
     ('replace_values', 'Replace Values'),
     ('create_flag_column', 'Create Flag Column'),
+    ('remove_outliers', 'Remove Outliers'),
 )
 
 METHOD_CHOICES = (
@@ -38,7 +39,6 @@ SCALER_TYPE_CHOICES = (
 )
 
 
-
 class FeatureEngineeringSerializer(serializers.Serializer):
     operation = serializers.ChoiceField(choices=OPERATION_CHOICES)
     col_name = serializers.CharField(max_length=256, required=False)
@@ -46,6 +46,9 @@ class FeatureEngineeringSerializer(serializers.Serializer):
     col_2 = serializers.CharField(max_length=256, required=False)
     method = serializers.ChoiceField(choices=METHOD_CHOICES)
     n = serializers.IntegerField(required=False)
+    Q1 = serializers.IntegerField(required=False)
+    Q3 = serializers.IntegerField(required=False)
+    remove = serializers.BooleanField(bool=True)
     transform_type = serializers.ChoiceField(choices=TRANSFORM_TYPE_CHOICES, required=False)
     scaler_type = serializers.ChoiceField(choices=SCALER_TYPE_CHOICES, required=False)
     val_search = serializers.CharField(max_length=256, required=False)

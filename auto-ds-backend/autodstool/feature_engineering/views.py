@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from .serializers import FeatureEngineeringSerializer
-from autodstool.utils.models.feature_engineering import perform_operation, take_first_n, take_last_n, create_transformed_column, replace_values, create_flag_column
+from autodstool.utils.models.feature_engineering import perform_operation, take_first_n, take_last_n, create_transformed_column, replace_values, create_flag_column, remove_outliers
 
 
 class FeatureEngineeringViews(APIView):
@@ -56,6 +56,14 @@ class FeatureEngineeringViews(APIView):
                 col_name = serializer.validated_data.get('col_name')
                 val_search = serializer.validated_data.get('val_search')
                 df = create_flag_column(df=df, col_name=col_name, val_search=val_search)
+            
+            elif operation == 'remove_outliers':
+                col_name = serializer.validated_data.get('col_name')
+                Q1 = serializer.validated_data.get('Q1')
+                Q3 = serializer.validated_data.get('Q3')
+                remove = serializer.validated_data.get('remove')
+                df = remove_outliers(df=df, col_name=col_name, Q1=Q1, Q3=Q3, remove=remove)
+
                 
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="engineered.csv"'
