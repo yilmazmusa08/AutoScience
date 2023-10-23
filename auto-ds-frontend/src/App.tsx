@@ -5,12 +5,14 @@ import Authentication from "./containers/Authentication";
 import Preprocessing from "./containers/Preprocessing";
 import Analysis from "./containers/Analysis";
 import Models from "./containers/Models";
+import FeatureEngineering from "./containers/FeatureEngineering";
 import Feedback from "./containers/Feedback";
 import { useApp } from "./context/app.context";
 import {
   FileDoneOutlined,
   LineChartOutlined,
   PlayCircleOutlined,
+  DeploymentUnitOutlined,
 } from "@ant-design/icons";
 
 const { Content, Sider } = Layout;
@@ -33,7 +35,7 @@ const App: React.FC = () => {
     >
       <Layout className="layout" style={{ height: "100%" }}>
         {authUser && (
-          <Sider trigger={null} collapsible collapsed={collapsed}>
+          <Sider trigger={null} collapsible collapsed={collapsed} width="220">
             <div className="demo-logo-vertical" />
             <Menu
               theme="dark"
@@ -57,6 +59,11 @@ const App: React.FC = () => {
                   icon: <PlayCircleOutlined />,
                   label: "Models",
                 },
+                {
+                  key: "4",
+                  icon: <DeploymentUnitOutlined />,
+                  label: "Feature Engineering",
+                },
               ]}
             />
           </Sider>
@@ -72,8 +79,10 @@ const App: React.FC = () => {
                   <Preprocessing />
                 ) : selectedKey === "2" ? (
                   <Analysis />
+                ) : selectedKey === "3" ? (
+                  <Models />
                 ) : (
-                  selectedKey === "3" && <Models />
+                  selectedKey === "4" && <FeatureEngineering />
                 )}
                 <Feedback />
               </>

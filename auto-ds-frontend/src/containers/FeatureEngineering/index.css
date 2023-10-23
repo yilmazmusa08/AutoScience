@@ -1,0 +1,9 @@
+.feature-engineering-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-engineering-title {
+  margin-bottom: 10px;
+}

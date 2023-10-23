@@ -24,3 +24,7 @@ export const ModelsUrl = {
 export const FeedbackUrl = {
   CreateFeedback: "/feedback/",
 };
+
+export const FeatureEngineeringUrl = {
+  RunFeatureEngineering: "/feature_engineering/",
+};

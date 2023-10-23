@@ -11,6 +11,7 @@ import {
   IAnalysisRequest,
 } from "../containers/Analysis/types/analysis";
 import { IModels, IModelsRequest } from "../containers/Models/types/models";
+import { IFeatureEngineeringRequest } from "../containers/FeatureEngineering/types/featureEngineering";
 import {
   ILogin,
   IRegister,
@@ -22,6 +23,7 @@ import { downloadFile } from "../utils/downloadFile";
 import { preprocessRequest } from "../services/requests/preprocess";
 import { analyzeRequest } from "../services/requests/analyze";
 import { modelsRequest } from "../services/requests/models";
+import { featureEngineeringRequest } from "../services/requests/featureEngineering";
 import { loginRequest } from "../services/requests/login";
 import { registerRequest } from "../services/requests/register";
 import { createFeedbackRequest } from "../services/requests/feedback";
@@ -38,6 +40,7 @@ interface AppContextState {
   preprocess: (payload: IPreprocessingRequest) => void;
   analyze: (payload: IAnalysisRequest) => void;
   runModels: (payload: IModelsRequest) => void;
+  runFeatureEngineering: (payload: IFeatureEngineeringRequest) => void;
   login: (payload: ILogin) => void;
   logout: () => void;
   register: (payload: IRegister) => void;
@@ -50,6 +53,7 @@ interface AppContextState {
   loadingModels: boolean;
   loadingAuth: boolean;
   loadingFeedback: boolean;
+  loadingFeatureEngineering: boolean;
 }
 
 const defaultAppContext: AppContextState = {
@@ -62,6 +66,7 @@ const defaultAppContext: AppContextState = {
   preprocess: () => {},
   analyze: () => {},
   runModels: () => {},
+  runFeatureEngineering: () => {},
   login: () => {},
   logout: () => {},
   register: () => {},
@@ -74,6 +79,7 @@ const defaultAppContext: AppContextState = {
   loadingModels: false,
   loadingAuth: false,
   loadingFeedback: false,
+  loadingFeatureEngineering: false,
 };
 
 const useLoadingState = (initialState: boolean) => {
@@ -106,6 +112,8 @@ const useAppContext = (props: AppContextState): AppContextState => {
   const [loadingFeedback, updateLoadingFeedback] = useLoadingState(
     props.loadingFeedback,
   );
+  const [loadingFeatureEngineering, updateLoadingFeatureEngineering] =
+    useLoadingState(props.loadingFeatureEngineering);
 
   const updateAuthUser = useCallback(
     (authUser: AppContextState["authUser"]) => {
@@ -186,6 +194,18 @@ const useAppContext = (props: AppContextState): AppContextState => {
     }
   };
 
+  const runFeatureEngineering = async (payload: IFeatureEngineeringRequest) => {
+    updateLoadingFeatureEngineering(true);
+    try {
+      const data = await featureEngineeringRequest(payload);
+      downloadFile(data, payload.file.name);
+    } catch (error) {
+      throw error;
+    } finally {
+      updateLoadingFeatureEngineering(false);
+    }
+  };
+
   const createFeedback = async (payload: IFeedbackRequest) => {
     updateLoadingFeedback(true);
     try {
@@ -252,6 +272,7 @@ const useAppContext = (props: AppContextState): AppContextState => {
     preprocess,
     analyze,
     runModels,
+    runFeatureEngineering,
     login,
     logout,
     register,
@@ -268,6 +289,7 @@ const useAppContext = (props: AppContextState): AppContextState => {
     loadingModels,
     loadingAuth,
     loadingFeedback,
+    loadingFeatureEngineering,
   };
 };
 
@@ -288,6 +310,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
     preprocess,
     analyze,
     runModels,
+    runFeatureEngineering,
     login,
     logout,
     register,
@@ -304,6 +327,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
     loadingModels,
     loadingAuth,
     loadingFeedback,
+    loadingFeatureEngineering,
   } = useAppContext(defaultAppContext);
 
   return (
@@ -314,6 +338,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
         preprocess,
         analyze,
         runModels,
+        runFeatureEngineering,
         login,
         logout,
         register,
@@ -330,6 +355,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactElement }> = ({
         loadingModels,
         loadingAuth,
         loadingFeedback,
+        loadingFeatureEngineering,
       }}
     >
       {children}
