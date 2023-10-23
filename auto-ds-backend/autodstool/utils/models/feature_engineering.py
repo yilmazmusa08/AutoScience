@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
+
 def perform_operation(df, col_1, col_2, operation='add'):
     """
     Perform addition, subtraction, multiplication, or division of two columns from a DataFrame and return a new DataFrame with the result.
@@ -230,6 +231,26 @@ def scale_column_in_dataframe(df, col_name, scaler_type):
     return df_copy
 
 
-
-
+def remove_outliers(df, col_name, Q1=0.1, Q3=0.99, remove=True):
+    # Create a copy of the original DataFrame
+    df_copy = df.copy()
+    
+    # Select the column for outlier removal
+    column_data = df_copy[col_name]
+    
+    # Calculate the IQR (Interquartile Range)
+    IQR = Q3 - Q1
+    
+    # Define lower and upper bounds for outliers
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    
+    # Identify outliers
+    outliers = (column_data < lower_bound) | (column_data > upper_bound)
+    
+    if remove:
+        # Remove outliers from the DataFrame
+        df_copy = df_copy[~outliers]
+    
+    return df_copy, outliers
 
