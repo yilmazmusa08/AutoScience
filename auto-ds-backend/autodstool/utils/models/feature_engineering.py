@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 
-def perform_operation(df, col_1, col_2, operation='add'):
+def perform_operation(df, col_1, col_2, method='add'):
     """
     Perform addition, subtraction, multiplication, or division of two columns from a DataFrame and return a new DataFrame with the result.
 
@@ -25,24 +25,24 @@ def perform_operation(df, col_1, col_2, operation='add'):
     if not pd.api.types.is_numeric_dtype(df[col_1]) or not pd.api.types.is_numeric_dtype(df[col_2]):
         raise ValueError("Both columns must contain numeric values.")
 
-    if 'divide' in operation and (df[col_2] == 0).any():
+    if 'divide' in method and (df[col_2] == 0).any():
         raise ValueError("Division by zero encountered. Aborting operation.")
 
     # Perform the specified operation and store it in a new column
-    if operation == 'add':
+    if method == 'add':
         new_col_name = f"{col_1}_{col_2}_sum"
         df[new_col_name] = df[col_1] + df[col_2]
-    elif operation == 'subtract':
+    elif method == 'subtract':
         new_col_name = f"{col_1}_{col_2}_difference"
         df[new_col_name] = df[col_1] - df[col_2]
-    elif operation == 'multiply':
+    elif method == 'multiply':
         new_col_name = f"{col_1}_{col_2}_multiplied"
         df[new_col_name] = df[col_1] * df[col_2]
-    elif operation == 'divide':
+    elif method == 'divide':
         new_col_name = f"{col_1}_{col_2}_division"
         df[new_col_name] = df[col_1] / df[col_2]
     else:
-        raise ValueError("Invalid operation. Use 'add', 'subtract', 'multiply', or 'divide'.")
+        raise ValueError("Invalid method. Use 'add', 'subtract', 'multiply', or 'divide'.")
 
     return df
 
