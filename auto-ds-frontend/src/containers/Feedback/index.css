@@ -1,15 +1,20 @@
 .ant-float-btn-body {
+  pointer-events: none;
   padding: 15px;
 }
 .ant-float-btn-description {
   font-size: 14px !important;
+  transform: rotate(270deg);
+}
+.ant-float-btn-content {
+  overflow: visible !important;
 }
 
 .float-button {
   right: 0;
   top: 50%;
   border-radius: 8px 0px 0px 8px;
-  writing-mode: sideways-lr;
+  height: 100px;
 }
 
 .feedback-icon {
