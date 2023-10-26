@@ -8,8 +8,9 @@ export function featureEngineeringRequest(
   const formData = new FormData();
   formData.append("file", payload.file);
   formData.append("operation", payload.operation);
-  formData.append("method", payload.method);
-  formData.append("remove", payload.remove.toString());
+  if (payload.method) {
+    formData.append("method", payload.method);
+  }
   if (payload.col_name) {
     formData.append("col_name", payload.col_name);
   }
@@ -25,8 +26,8 @@ export function featureEngineeringRequest(
   if (payload.Q1) {
     formData.append("Q1", payload.Q1.toString());
   }
-  if (payload.Q2) {
-    formData.append("Q2", payload.Q2.toString());
+  if (payload.Q3) {
+    formData.append("Q3", payload.Q3.toString());
   }
   if (payload.transform_type) {
     formData.append("transform_type", payload.transform_type);
@@ -39,6 +40,9 @@ export function featureEngineeringRequest(
   }
   if (payload.val_replace) {
     formData.append("val_replace", payload.val_replace);
+  }
+  if (payload.remove) {
+    formData.append("remove", payload.remove.toString());
   }
   return BackendClient.post(FeatureEngineeringUrl.RunFeatureEngineering, formData)
     .then(({ data }) => {

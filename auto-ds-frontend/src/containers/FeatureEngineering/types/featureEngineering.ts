@@ -118,11 +118,11 @@ export interface IFeatureEngineeringRequest {
   col_name?: string | null;
   col1?: string | null;
   col2?: string | null;
-  method: MethodType;
+  method?: MethodType | null;
   n?: number | null;
   Q1?: number | null;
-  Q2?: number | null;
-  remove: boolean;
+  Q3?: number | null;
+  remove?: boolean;
   transform_type?: TransformType | null;
   scaler_type?: ScalerType | null;
   val_search?: string | null;
