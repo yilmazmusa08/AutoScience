@@ -53,5 +53,8 @@ COPY . /code/
 # Specify the command to run your application
 # CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
+# Run the command to collect static files in Django (assumes your Django project is named "autodstool")
+RUN python manage.py collectstatic --noinput
+
 # Specify the command to run your application with Gunicorn
 CMD ["gunicorn", "autodstool.wsgi:application", "--bind", "0.0.0.0:8000", "--worker-class", "gevent", "--timeout", "600", "--workers", "16", "--chdir=/code"]

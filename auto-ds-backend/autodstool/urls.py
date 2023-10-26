@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
+from django.conf import settings
+from django.conf.urls.static import static
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -40,4 +42,4 @@ urlpatterns = [
     path("api/", include("autodstool.analysis.urls")),
     path("api/", include("autodstool.models.urls")),
     path("api/", include("autodstool.api_router")),
-]
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

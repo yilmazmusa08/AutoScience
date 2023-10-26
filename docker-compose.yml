@@ -10,6 +10,7 @@ services:
       - ./auto-ds-backend/.env
     volumes:
       - ./auto-ds-backend:/code
+      - /code/static
     ports:
       - 8000
     depends_on:
