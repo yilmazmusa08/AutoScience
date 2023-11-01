@@ -163,7 +163,7 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={8}>
-        <Form.Item label="Transform Type" name="transform">
+        <Form.Item label="Transform Type" name="transform_type">
           <Select
             allowClear
             placeholder="Select Transform Type"
@@ -227,7 +227,7 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={12}>
-        <Form.Item label="Scaler Type" name="scaler">
+        <Form.Item label="Scaler Type" name="scaler_type">
           <Select
             allowClear
             placeholder="Select Scaler Type"
@@ -355,11 +355,12 @@ const FeatureEngineering: React.FC = () => {
             initialValues={{
               operation: operationTypeData[0].value,
               method: null,
-              scaler: null,
+              scaler_type: null,
               column_name: null,
               column_1: null,
               column_2: null,
               n: null,
+              transform_type:null,
               Quartile_1: null,
               Quartile_3: null,
               remove: false,
