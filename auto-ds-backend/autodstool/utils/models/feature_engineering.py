@@ -3,14 +3,14 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 
-def perform_operation(df, col_1, col_2, method='add'):
+def perform_operation(df, column_1, column_2, method='add'):
     """
     Perform addition, subtraction, multiplication, or division of two columns from a DataFrame and return a new DataFrame with the result.
 
     Args:
         df (pd.DataFrame): The input DataFrame.
-        col_1 (str): The name of the first column.
-        col_2 (str): The name of the second column.
+        column_1 (str): The name of the first column.
+        column_2 (str): The name of the second column.
         operation (str): The operation to perform ('add', 'subtract', 'multiply', or 'divide').
 
     Returns:
@@ -18,36 +18,36 @@ def perform_operation(df, col_1, col_2, method='add'):
                       of the specified operation on the specified columns as integers or floats.
     """
     # Check if the specified columns exist in the DataFrame
-    if col_1 not in df.columns or col_2 not in df.columns:
+    if column_1 not in df.columns or column_2 not in df.columns:
         raise ValueError("Specified columns do not exist in the DataFrame.")
     
     # Check if the values in both columns are numeric
-    if not pd.api.types.is_numeric_dtype(df[col_1]) or not pd.api.types.is_numeric_dtype(df[col_2]):
+    if not pd.api.types.is_numeric_dtype(df[column_1]) or not pd.api.types.is_numeric_dtype(df[column_2]):
         raise ValueError("Both columns must contain numeric values.")
 
-    if 'divide' in method and (df[col_2] == 0).any():
+    if 'divide' in method and (df[column_2] == 0).any():
         raise ValueError("Division by zero encountered. Aborting operation.")
 
     # Perform the specified operation and store it in a new column
     if method == 'add':
-        new_col_name = f"{col_1}_{col_2}_sum"
-        df[new_col_name] = df[col_1] + df[col_2]
+        new_column_name = f"{column_1}_{column_2}_sum"
+        df[new_column_name] = df[column_1] + df[column_2]
     elif method == 'subtract':
-        new_col_name = f"{col_1}_{col_2}_difference"
-        df[new_col_name] = df[col_1] - df[col_2]
+        new_column_name = f"{column_1}_{column_2}_difference"
+        df[new_column_name] = df[column_1] - df[column_2]
     elif method == 'multiply':
-        new_col_name = f"{col_1}_{col_2}_multiplied"
-        df[new_col_name] = df[col_1] * df[col_2]
+        new_column_name = f"{column_1}_{column_2}_multiplied"
+        df[new_column_name] = df[column_1] * df[column_2]
     elif method == 'divide':
-        new_col_name = f"{col_1}_{col_2}_division"
-        df[new_col_name] = df[col_1] / df[col_2]
+        new_column_name = f"{column_1}_{column_2}_division"
+        df[new_column_name] = df[column_1] / df[column_2]
     else:
         raise ValueError("Invalid method. Use 'add', 'subtract', 'multiply', or 'divide'.")
 
     return df
 
 
-def take_first_n(df, col_name, n):
+def take_first_n(df, column_name, n):
     """
     Create a new column in a DataFrame based on the first "n" characters from the values of the input column.
 
@@ -60,24 +60,24 @@ def take_first_n(df, col_name, n):
         pd.DataFrame: A new DataFrame with an additional column containing the first "n" characters from the input column values.
     """
     # Check if the specified column exists in the DataFrame
-    if col_name not in df.columns:
+    if column_name not in df.columns:
         raise ValueError("Specified column does not exist in the DataFrame.")
     
     # Convert the values in the column to strings
-    df[col_name] = df[col_name].apply(str)
+    df[column_name] = df[column_name].apply(str)
     
     # Check if any value has more than "n" characters
-    if (df[col_name].str.len() > n).any():
-        raise ValueError(f"Some values in column '{col_name}' have more than {n} characters.")
+    if (df[column_name].str.len() < n).any():
+        raise ValueError(f"Some values in column '{column_name}' have more than {n} characters.")
 
     # Create a new column with the first "n" characters from the input column values
-    new_col_name = f"{col_name}_{n}_chars"
-    df[new_col_name] = df[col_name].str[:n]
+    new_column_name = f"{column_name}_{n}_chars"
+    df[new_column_name] = df[column_name].str[:n]
 
     return df
 
 
-def take_last_n(df, col_name, n):
+def take_last_n(df, column_name, n):
     """
     Create a new column in a DataFrame based on the last "n" characters from the values of the input column.
 
@@ -90,24 +90,24 @@ def take_last_n(df, col_name, n):
         pd.DataFrame: A new DataFrame with an additional column containing the last "n" characters from the input column values.
     """
     # Check if the specified column exists in the DataFrame
-    if col_name not in df.columns:
+    if column_name not in df.columns:
         raise ValueError("Specified column does not exist in the DataFrame.")
     
     # Convert the values in the column to strings
-    df[col_name] = df[col_name].apply(str)
+    df[column_name] = df[column_name].apply(str)
     
     # Check if any value has more than "n" characters
-    if (df[col_name].str.len() > n).any():
-        raise ValueError(f"Some values in column '{col_name}' have more than {n} characters.")
+    if (df[column_name].str.len() > n).any():
+        raise ValueError(f"Some values in column '{column_name}' have more than {n} characters.")
     
     # Create a new column with the last "n" characters from the input column values
-    new_col_name = f"{col_name}_last_{n}_chars"
-    df[new_col_name] = df[col_name].str[-n:]
+    new_column_name = f"{column_name}_last_{n}_chars"
+    df[new_column_name] = df[column_name].str[-n:]
 
     return df
 
 
-def create_transformed_column(df, col_name, transform_type='log', n=None):
+def create_transformed_column(df, column_name, transform_type='log', n=None):
     """
     Create a new column in a DataFrame by applying various transformations (logarithm, power, root) to the values in the input column.
 
@@ -121,44 +121,40 @@ def create_transformed_column(df, col_name, transform_type='log', n=None):
         pd.DataFrame: A new DataFrame with an additional column containing the transformed values.
     """
     # Check if the specified column exists in the DataFrame
-    if col_name not in df.columns:
+    if column_name not in df.columns:
         raise ValueError("Specified column does not exist in the DataFrame.")
     
     # Check if the values in the column are numeric
-    if not pd.api.types.is_numeric_dtype(df[col_name]):
-        raise ValueError(f"Column '{col_name}' contains non-numeric values.")
-    
-    # Check if any value has more than "n" characters
-    if (df[col_name].str.len() > n).any():
-        raise ValueError(f"Some values in column '{col_name}' have more than {n} characters.")
+    if not pd.api.types.is_numeric_dtype(df[column_name]):
+        raise ValueError(f"Column '{column_name}' contains non-numeric values.")
     
     # Create a new column with the transformed values
-    new_col_name = f"{col_name}_{transform_type}"
+    new_column_name = f"{column_name}_{transform_type}"
     
-    if transform_type == 'log':
+    if transform_type.lower() == 'log':
         try:
-            df[new_col_name] = np.log(df[col_name])
+            df[new_column_name] = np.log(df[column_name])
         except ValueError as e:
             error_message = str(e)
             if "divide by zero" in error_message:
-                raise ValueError(f"Logarithm of 0 encountered in column '{col_name}'.") from e
+                raise ValueError(f"Logarithm of 0 encountered in column '{column_name}'.") from e
             elif "invalid value encountered in log" in error_message:
-                raise ValueError(f"Logarithm of inf or -inf encountered in column '{col_name}'.") from e
-    elif transform_type == 'power':
+                raise ValueError(f"Logarithm of inf or -inf encountered in column '{column_name}'.") from e
+    elif transform_type.lower() == 'power':
         if n is None:
             raise ValueError("Parameter 'n' is required for 'power' transformation.")
-        df[new_col_name] = np.power(df[col_name], n)
-    elif transform_type == 'root':
+        df[new_column_name] = np.power(df[column_name], n)
+    elif transform_type.lower() == 'root':
         if n is None:
             raise ValueError("Parameter 'n' is required for 'root' transformation.")
-        df[new_col_name] = np.power(df[col_name], 1/n)
+        df[new_column_name] = np.power(df[column_name], 1/n)
     else:
         raise ValueError("Invalid transform_type. Use 'log', 'power', or 'root'.")
 
     return df
 
 
-def replace_values(df, col_name, val_search, val_replace):
+def replace_values(df, column_name, value_to_search, value_to_replace):
     """
     Replace specific values in a DataFrame column with a specified replacement value.
 
@@ -172,16 +168,16 @@ def replace_values(df, col_name, val_search, val_replace):
         pd.DataFrame: A new DataFrame with the specified replacements made in the specified column.
     """
     # Check if the specified column exists in the DataFrame
-    if col_name not in df.columns:
+    if column_name not in df.columns:
         raise ValueError("Specified column does not exist in the DataFrame.")
     
     # Replace the specified values in the column
-    df[col_name] = df[col_name].replace(val_search, val_replace)
+    df[column_name] = df[column_name].replace(value_to_search, value_to_replace)
 
     return df
 
 
-def create_flag_column(df, col_name, val_search):
+def create_flag_column(df, column_name, value_to_search):
 
 
     """
@@ -196,22 +192,24 @@ def create_flag_column(df, col_name, val_search):
         pd.DataFrame: A new DataFrame with an additional column containing 1 if the value is found, and 0 otherwise.
     """
     # Check if the specified column exists in the DataFrame
-    if col_name not in df.columns:
+    if column_name not in df.columns:
         raise ValueError("Specified column does not exist in the DataFrame.")
     
     # Create a new column with 1 if the value is found, and 0 otherwise
-    new_col_name = f"{col_name}_flag"
-    df[new_col_name] = df[col_name].apply(lambda x: 1 if x == val_search else 0)
+    new_column_name = f"{column_name}_flag"
+    df[new_column_name] = df[column_name].apply(lambda x: 1 if x == value_to_search else 0)
 
     return df
 
 
-def scale_column_in_dataframe(df, col_name, scaler_type):
+def scale_column_in_dataframe(df, column_name, scaler_type=StandardScaler):
     # Create a copy of the original DataFrame
     df_copy = df.copy()
     
     # Select the column to scale
-    column_to_scale = df_copy[col_name].values.reshape(-1, 1)
+    column_to_scale = df_copy[column_name].values.reshape(-1, 1)
+
+    scaler_type = scaler_type.replace(" ","")
     
     if scaler_type == "StandardScaler":
         scaler = StandardScaler()
@@ -226,24 +224,28 @@ def scale_column_in_dataframe(df, col_name, scaler_type):
     scaled_values = scaler.fit_transform(column_to_scale)
     
     # Replace the original column in the DataFrame with the scaled values
-    df_copy[col_name] = scaled_values
+    df_copy[column_name] = scaled_values
     
     return df_copy
 
 
-def remove_outliers(df, col_name, Q1=0.1, Q3=0.99, remove=True):
+def remove_outliers(df, column_name, Quartile_1=1, Quartile_3=99, remove=True):
     # Create a copy of the original DataFrame
     df_copy = df.copy()
     
     # Select the column for outlier removal
-    column_data = df_copy[col_name]
+    column_data = df_copy[column_name]
     
+    # Convert Quartiles to a percentage value
+    Quartile_1 = Quartile_1 / 100
+    Quartile_3 = Quartile_3 / 100
+
     # Calculate the IQR (Interquartile Range)
-    IQR = Q3 - Q1
+    IQR = Quartile_3 - Quartile_1
     
     # Define lower and upper bounds for outliers
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
+    lower_bound = Quartile_1 - 1.5 * IQR
+    upper_bound = Quartile_3 + 1.5 * IQR
     
     # Identify outliers
     outliers = (column_data < lower_bound) | (column_data > upper_bound)
@@ -252,5 +254,5 @@ def remove_outliers(df, col_name, Q1=0.1, Q3=0.99, remove=True):
         # Remove outliers from the DataFrame
         df_copy = df_copy[~outliers]
     
-    return df_copy, outliers
+    return df_copy
 

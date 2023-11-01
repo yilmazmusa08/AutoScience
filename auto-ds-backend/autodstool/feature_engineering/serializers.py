@@ -42,18 +42,18 @@ SCALER_TYPE_CHOICES = (
 class FeatureEngineeringSerializer(serializers.Serializer):
     file = serializers.FileField(use_url=False, validators=[validate_file_size])
     operation = serializers.ChoiceField(choices=OPERATION_CHOICES)
-    col_name = serializers.CharField(max_length=256, required=False)
-    col_1 = serializers.CharField(max_length=256, required=False)
-    col_2 = serializers.CharField(max_length=256, required=False)
+    column_name = serializers.CharField(max_length=256, required=False)
+    column_1 = serializers.CharField(max_length=256, required=False)
+    column_2 = serializers.CharField(max_length=256, required=False)
     method = serializers.ChoiceField(choices=METHOD_CHOICES, required=False)
     n = serializers.IntegerField(required=False)
-    Q1 = serializers.IntegerField(required=False, min_value=0, max_value=100)
-    Q3 = serializers.IntegerField(required=False, min_value=0, max_value=100)
+    Quartile_1 = serializers.IntegerField(required=False, min_value=0, max_value=100)
+    Quartile_3 = serializers.IntegerField(required=False, min_value=0, max_value=100)
     remove = serializers.BooleanField(required=False)
     transform_type = serializers.ChoiceField(choices=TRANSFORM_TYPE_CHOICES, required=False)
     scaler_type = serializers.ChoiceField(choices=SCALER_TYPE_CHOICES, required=False)
-    val_search = serializers.CharField(max_length=256, required=False)
-    val_replace = serializers.CharField(max_length=256, required=False)
+    value_to_search = serializers.CharField(max_length=256, required=False)
+    value_to_replace = serializers.CharField(max_length=256, required=False)
 
     def validate_file(self, value):
         try:

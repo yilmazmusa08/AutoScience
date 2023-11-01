@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from .serializers import FeatureEngineeringSerializer
-from autodstool.utils.models.feature_engineering import perform_operation, take_first_n, take_last_n, create_transformed_column, replace_values, create_flag_column, remove_outliers
+from autodstool.utils.models.feature_engineering import perform_operation, take_first_n, take_last_n, create_transformed_column, replace_values, scale_column_in_dataframe, create_flag_column, remove_outliers
 
 
 class FeatureEngineeringViews(APIView):
@@ -20,49 +20,49 @@ class FeatureEngineeringViews(APIView):
             operation = serializer.validated_data.get('operation')
 
             if operation == 'perform_operation':
-                col_1 = serializer.validated_data.get('col_1')
-                col_2 = serializer.validated_data.get('col_2')
+                column_1 = serializer.validated_data.get('column_1')
+                column_2 = serializer.validated_data.get('column_2')
                 method = serializer.validated_data.get('method')
-                df = perform_operation(df=df, col_1=col_1, col_2=col_2, operation=method)
+                df = perform_operation(df=df, column_1=column_1, column_2=column_2, method=method)
 
             elif operation == 'take_first_n':
-                col_name = serializer.validated_data.get('col_name')
+                column_name = serializer.validated_data.get('column_name')
                 n = serializer.validated_data.get('n')
-                df = take_first_n(df=df, col_name=col_name, n=n)
+                df = take_first_n(df=df, column_name=column_name, n=n)
 
             elif operation == 'take_last_n':
-                col_name = serializer.validated_data.get('col_name')
+                column_name = serializer.validated_data.get('column_name')
                 n = serializer.validated_data.get('n')
-                df = take_last_n(df=df, col_name=col_name, n=n)
+                df = take_last_n(df=df, column_name=column_name, n=n)
 
             elif operation == 'create_transformed_column':
-                col_name = serializer.validated_data.get('col_name')
+                column_name = serializer.validated_data.get('column_name')
                 transform_type = serializer.validated_data.get('transform_type')
                 n = serializer.validated_data.get('n')
-                df = create_transformed_column(df=df, col_name=col_name, transform_type=transform_type, n=n)
+                df = create_transformed_column(df=df, column_name=column_name, transform_type=transform_type, n=n)
 
             elif operation == 'scale_column_in_dataframe':
-                col_name = serializer.validated_data.get('col_name')
+                column_name = serializer.validated_data.get('column_name')
                 scaler_type = serializer.validated_data.get('scaler_type')
-                df = create_transformed_column(df=df, col_name=col_name, scaler_type=scaler_type, n=n)
+                df = scale_column_in_dataframe(df=df, column_name=column_name, scaler_type=scaler_type)
 
             elif operation == 'replace_values':
-                col_name = serializer.validated_data.get('col_name')
-                val_search = serializer.validated_data.get('val_search')
-                val_replace = serializer.validated_data.get('val_replace')
-                df = replace_values(df=df, col_name=col_name, val_search=val_search, val_replace=val_replace)
+                column_name = serializer.validated_data.get('column_name')
+                value_to_search = serializer.validated_data.get('value_to_search')
+                value_to_replace = serializer.validated_data.get('value_to_replace')
+                df = replace_values(df=df, column_name=column_name, value_to_search=value_to_search, value_to_replace=value_to_replace)
 
             elif operation == 'create_flag_column':
-                col_name = serializer.validated_data.get('col_name')
-                val_search = serializer.validated_data.get('val_search')
-                df = create_flag_column(df=df, col_name=col_name, val_search=val_search)
+                column_name = serializer.validated_data.get('column_name')
+                value_to_search = serializer.validated_data.get('value_to_search')
+                df = create_flag_column(df=df, column_name=column_name, value_to_search=value_to_search)
             
             elif operation == 'remove_outliers':
-                col_name = serializer.validated_data.get('col_name')
-                Q1 = serializer.validated_data.get('Q1')
-                Q3 = serializer.validated_data.get('Q3')
+                column_name = serializer.validated_data.get('column_name')
+                Quartile_1 = serializer.validated_data.get('Quartile_1')
+                Quartile_3 = serializer.validated_data.get('Quartile_3')
                 remove = serializer.validated_data.get('remove')
-                df = remove_outliers(df=df, col_name=col_name, Q1=Q1, Q3=Q3, remove=remove)
+                df = remove_outliers(df=df, column_name=column_name, Quartile_1=Quartile_1, Quartile_3=Quartile_3, remove=remove)
 
                 
             response = HttpResponse(content_type='text/csv')
