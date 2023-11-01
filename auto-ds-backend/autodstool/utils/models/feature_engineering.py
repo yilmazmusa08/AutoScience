@@ -97,7 +97,7 @@ def take_last_n(df, column_name, n):
     df[column_name] = df[column_name].apply(str)
     
     # Check if any value has more than "n" characters
-    if (df[column_name].str.len() > n).any():
+    if (df[column_name].str.len() < n).any():
         raise ValueError(f"Some values in column '{column_name}' have more than {n} characters.")
     
     # Create a new column with the last "n" characters from the input column values
@@ -131,7 +131,7 @@ def create_transformed_column(df, column_name, transform_type='log', n=None):
     # Create a new column with the transformed values
     new_column_name = f"{column_name}_{transform_type}"
     
-    if transform_type.lower() == 'log':
+    if transform_type == 'log':
         try:
             df[new_column_name] = np.log(df[column_name])
         except ValueError as e:
@@ -140,11 +140,11 @@ def create_transformed_column(df, column_name, transform_type='log', n=None):
                 raise ValueError(f"Logarithm of 0 encountered in column '{column_name}'.") from e
             elif "invalid value encountered in log" in error_message:
                 raise ValueError(f"Logarithm of inf or -inf encountered in column '{column_name}'.") from e
-    elif transform_type.lower() == 'power':
+    elif transform_type == 'power':
         if n is None:
             raise ValueError("Parameter 'n' is required for 'power' transformation.")
         df[new_column_name] = np.power(df[column_name], n)
-    elif transform_type.lower() == 'root':
+    elif transform_type == 'root':
         if n is None:
             raise ValueError("Parameter 'n' is required for 'root' transformation.")
         df[new_column_name] = np.power(df[column_name], 1/n)
@@ -208,8 +208,6 @@ def scale_column_in_dataframe(df, column_name, scaler_type=StandardScaler):
     
     # Select the column to scale
     column_to_scale = df_copy[column_name].values.reshape(-1, 1)
-
-    scaler_type = scaler_type.replace(" ","")
     
     if scaler_type == "StandardScaler":
         scaler = StandardScaler()
