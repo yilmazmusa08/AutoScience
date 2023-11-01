@@ -68,10 +68,10 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={10}>
-        <Form.Item label="Col 1" name="col1">
+        <Form.Item label="Column 1" name="column_1">
           <Select
             allowClear
-            placeholder="Select Col 1"
+            placeholder="Select Column 1"
             disabled={!file}
             options={targetColumns?.map((column) => ({
               value: column,
@@ -82,10 +82,10 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={10}>
-        <Form.Item label="Col 2" name="col2">
+        <Form.Item label="Column 2" name="column_2">
           <Select
             allowClear
-            placeholder="Select Col 2"
+            placeholder="Select Column 2"
             disabled={!file}
             options={targetColumns?.map((column) => ({
               value: column,
@@ -101,7 +101,7 @@ const FeatureEngineering: React.FC = () => {
   const TakeFirstN = () => (
     <Row gutter={8}>
       <Col span={12}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -125,7 +125,7 @@ const FeatureEngineering: React.FC = () => {
   const TakeLastN = () => (
     <Row gutter={8}>
       <Col span={12}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -149,7 +149,7 @@ const FeatureEngineering: React.FC = () => {
   const CreateTransformedColumn = () => (
     <Row gutter={8}>
       <Col span={12}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -184,7 +184,7 @@ const FeatureEngineering: React.FC = () => {
   const ReplaceValues = () => (
     <Row gutter={8}>
       <Col span={8}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -198,12 +198,12 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={8}>
-        <Form.Item label="Value Search" name="val_search">
+        <Form.Item label="Value Search" name="value_to_search">
           <Input placeholder="Value Search" />
         </Form.Item>
       </Col>
       <Col span={8}>
-        <Form.Item label="Value Replace" name="val_replace">
+        <Form.Item label="Value Replace" name="value_to_replace">
           <Input placeholder="Value Replace" />
         </Form.Item>
       </Col>
@@ -213,7 +213,7 @@ const FeatureEngineering: React.FC = () => {
   const ScaleColumnInDataframe = () => (
     <Row gutter={8}>
       <Col span={12}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -243,7 +243,7 @@ const FeatureEngineering: React.FC = () => {
   const CreateFlagColumn = () => (
     <Row gutter={8}>
       <Col span={12}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -257,7 +257,7 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={12}>
-        <Form.Item label="Value Search" name="val_search">
+        <Form.Item label="Value Search" name="value_to_search">
           <Input placeholder="Value Search" />
         </Form.Item>
       </Col>
@@ -267,7 +267,7 @@ const FeatureEngineering: React.FC = () => {
   const RemoveOutliers = () => (
     <Row gutter={8}>
       <Col span={12}>
-        <Form.Item label="Column Name" name="col_name">
+        <Form.Item label="Column Name" name="column_name">
           <Select
             allowClear
             placeholder="Select column name"
@@ -281,13 +281,13 @@ const FeatureEngineering: React.FC = () => {
         </Form.Item>
       </Col>
       <Col span={4}>
-        <Form.Item label="Q1" name="Q1">
-          <InputNumber placeholder="Q1" style={{ width: "100%" }} />
+        <Form.Item label="1. Quartile" name="Quartile_1">
+          <InputNumber placeholder="Quartile_1" style={{ width: "100%" }} />
         </Form.Item>
       </Col>
       <Col span={4}>
-        <Form.Item label="Q3" name="Q3">
-          <InputNumber placeholder="Q3" style={{ width: "100%" }} />
+        <Form.Item label="3. Quartile" name="Quartile_3">
+          <InputNumber placeholder="Quartile_3" style={{ width: "100%" }} />
         </Form.Item>
       </Col>
       <Col span={4}>
@@ -356,15 +356,15 @@ const FeatureEngineering: React.FC = () => {
               operation: operationTypeData[0].value,
               method: null,
               scaler: null,
-              col_name: null,
-              col1: null,
-              col2: null,
+              column_name: null,
+              column_1: null,
+              column_2: null,
               n: null,
-              Q1: null,
-              Q3: null,
+              Quartile_1: null,
+              Quartile_3: null,
               remove: false,
-              val_search: "",
-              val_replace: "",
+              value_to_search: "",
+              value_to_replace: "",
             }}
             onFinish={onFinish}
           >

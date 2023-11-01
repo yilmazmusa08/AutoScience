@@ -115,16 +115,16 @@ export const scalerTypeData = [
 export interface IFeatureEngineeringRequest {
   file: File;
   operation: OperationType;
-  col_name?: string | null;
-  col1?: string | null;
-  col2?: string | null;
+  column_name?: string | null;
+  column_1?: string | null;
+  column_2?: string | null;
   method?: MethodType | null;
   n?: number | null;
-  Q1?: number | null;
-  Q3?: number | null;
+  Quartile_1?: number | null;
+  Quartile_3?: number | null;
   remove?: boolean;
   transform_type?: TransformType | null;
   scaler_type?: ScalerType | null;
-  val_search?: string | null;
-  val_replace?: string | null;
+  value_to_search?: string | null;
+  value_to_replace?: string | null;
 }
