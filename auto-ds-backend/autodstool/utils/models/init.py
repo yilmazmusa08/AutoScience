@@ -20,11 +20,6 @@ warnings.filterwarnings('ignore', category=ConvergenceWarning)
 from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters, fill_remaining_na_special, clean_dataframe
 
 
-# df = pd.read_csv('time2.csv')
-# df = pd.read_csv('train.csv')
-# df = pd.read_csv('Salary_Data.csv')
-# df = pd.read_csv('Ratings.csv')
-
 def preprocess(df, model=True):
     kt = KolonTipiTahmini1()
 
@@ -50,8 +45,8 @@ def preprocess(df, model=True):
             if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
                 delete_cols.append(col)
 
-        print("DELETED COLUMNS: ", delete_cols)
-        df = df.drop(columns=delete_cols)
+        # print("DELETED COLUMNS: ", delete_cols)
+        # df = df.drop(columns=delete_cols)
 
         df = df.dropna()  # Drop all rows with NaN values
     
@@ -148,9 +143,20 @@ def get_problem_type(df, target=None):
         "comp_ratio": 0.95
     }
 
+    has_datetime_column = False
 
     for col in df.columns:
-        numeric_columns = [col for col in df.columns if df[col].dtype in ["int64", "float64"]]
+        if df[col].dtype == 'datetime64[ns]':
+            has_datetime_column = True
+        elif all(isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in df[col].dropna().values):
+            has_datetime_column = True
+        if df[col].dtype == 'object':
+            try:
+                df[col] = pd.to_datetime(df[col])
+                has_datetime_column = True
+            except:
+                pass
+
         if df[col].dtype == "object" and df[col].nunique() >= 10:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col])
@@ -160,46 +166,24 @@ def get_problem_type(df, target=None):
                 
     problem_type = None
     if target is not None:
-        if len(numeric_columns) > 0:
-            if df[target].nunique() == 2:
-                min_count = df[target].value_counts().min()
-                if min_count < 0.01 * len(df):
-                    problem_type = "anomaly_detection"
-                    # print("Anomaly Detection Confirmed")
-                else:
-                    problem_type = "binary classification"
-                    # print("Binary Classification Confirmed")
-            elif 2 < df[target].nunique() < 20:
-                problem_type = "multi-class classification"
-                # print("Multiclass Classification Confirmed")
-            elif len(df.columns) <= 6:
-                has_datetime_column = False
-                for col in df:
-                    if df[col].dtype == "object":
-                        try:
-                            df[col] = pd.to_datetime(df[col])
-                            has_datetime_column = True
-                        except:
-                            pass
-                if has_datetime_column or df.sort_values(by=[col], ascending=True).index.is_monotonic_increasing:
-                    problem_type = "time series"
-                    # print("Time Series Confirmed")
-
-                elif (
-                    len(df.columns) < 5
-                    and len([col for col in df.columns if isinstance(df[col].iloc[0], int)]) == 2
-                    or any(re.search(r"(id|ID|Id|iD>|ıd)", col) for col in df.columns)
-                ):
-                    problem_type = "recommendation"
-                    # print("Recommendation Confirmed")
-                else:
-                    problem_type = "scoring"
-                    # print("Scoring Confirmed")
+        if df[target].nunique() == 2:
+            min_count = df[target].value_counts().min()
+            if min_count < 0.01 * len(df):
+                problem_type = "anomaly_detection"
+                # print("Anomaly Detection Confirmed")
             else:
-                problem_type = "scoring"
-                # print("Scoring Confirmed")
+                problem_type = "binary classification"
+                # print("Binary Classification Confirmed")
+        elif 2 < df[target].nunique() < 20:
+            problem_type = "multi-class classification"
+            # print("Multiclass Classification Confirmed")
+        elif has_datetime_column or df.sort_values(by=[col], ascending=True).index.is_monotonic_increasing:
+            # if df[target].dtype in [np.int, np.float, np.int32, np.float32, np.int64, np.float64]:
+            problem_type = "time series"
+            # print("Time Series Confirmed")
+
         else:
-            problem_type = None
+            problem_type = "scoring"
     else:
         problem_type = "clustering"
         # print("Clustering Confirmed")
@@ -621,9 +605,3 @@ def set_to_list(data):
     if isinstance(data, np.int64):
         return int(data)
     return data
-
-#df = pd.read_csv('/home/firengiz/Belgeler/proje/automl/models/Iris.csv')
-
-#print(analysis(df, target='Species')) # Salary_Data.csv
-# print(create_model(df, date='DATE', target='Value')) # time2.csv
-#print(create_model(df))  Online_Retail.xlsx
