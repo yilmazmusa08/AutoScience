@@ -272,3 +272,4 @@ tags
 .env
 .envs/*
 !.envs/.local/
+package-lock.json

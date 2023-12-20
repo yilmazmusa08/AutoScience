@@ -37,6 +37,7 @@ services:
       - ./auto-ds-frontend/.env
     volumes:
       - ./auto-ds-frontend:/app
+      - /app/node_modules
     networks:
       - auto-ds-frontend
     ports:
