@@ -26,12 +26,9 @@ SECRET_KEY = 'django-insecure-y56fe985yjft)guk0+oae(zk4p9ikd$ex19j6_7gxr#7o=y@@i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost',
-    'http://localhost:3000',
-]
-CSRF_TRUSTED_ORIGINS = ['http://localhost']
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(",")
+CORS_ORIGIN_WHITELIST = os.environ.get("DJANGO_ALLOWED_HOSTS").split(",")
+CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(",")
 # Application definition
 
 DJANGO_APPS = [
