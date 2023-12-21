@@ -273,3 +273,4 @@ tags
 .envs/*
 !.envs/.local/
 package-lock.json
+certbot/*
