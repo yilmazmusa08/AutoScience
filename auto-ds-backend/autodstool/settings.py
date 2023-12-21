@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-y56fe985yjft)guk0+oae(zk4p9ikd$ex19j6_7gxr#7o=y@@i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = str(os.environ.get("DJANGO_ALLOWED_HOSTS")).split(",")
+ALLOWED_HOSTS = ["*"]
 CORS_ORIGIN_WHITELIST = str(os.environ.get("DJANGO_ALLOWED_HOSTS")).split(",")
 CSRF_TRUSTED_ORIGINS = str(os.environ.get("DJANGO_ALLOWED_HOSTS")).split(",")
 # Application definition
