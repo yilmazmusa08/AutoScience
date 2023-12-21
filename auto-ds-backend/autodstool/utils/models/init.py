@@ -68,7 +68,7 @@ def preprocess(df, model=True):
             if df[col].isnull().sum() / len(df) <= 0.5:
                 df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
             if df[col].isnull().sum() / len(df) > 0.5:
-                df[col] = df[col].isna().astype(int)
+                df.drop(col, axis=1, inplace=True)
 
         df = fill_remaining_na_special(df)
         df = df.dropna()  # Drop all rows with NaN values
