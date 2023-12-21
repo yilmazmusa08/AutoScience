@@ -8,7 +8,8 @@ DOCKER_COMPOSE = sudo docker-compose
 
 help:
 	@echo "Available Make targets:"
-	@echo "  build            - Build the project in development mode"
+	@echo "  build            - Build the project in production mode"
+	@echo "  build-dev        - Build the project in development mode"
 	@echo "  migrate          - Apply database migrations"
 	@echo "  makemigrations   - Create new database migrations"
 	@echo "  createsuperuser  - Create a superuser for Django admin"
@@ -19,14 +20,23 @@ help:
 	@echo "  clean            - Remove containers, images, and volumes (use with caution)"
 	@echo "  logs             - View container logs"
 
-build:         ## Build the project in development mode
+build:         ## Build the project in production mode
 	@if [ ! -f "./auto-ds-backend/.env" ]; then \
 		cp "./auto-ds-backend/.env.dev" "./auto-ds-backend/.env"; \
 	fi
 	@if [ ! -f "./auto-ds-frontend/.env" ]; then \
 		cp "./auto-ds-frontend/.env.dev" "./auto-ds-frontend/.env"; \
 	fi
-	$(DOCKER_COMPOSE) --profile dev up --build
+	$(DOCKER_COMPOSE) up --build -d
+
+build-dev:         ## Build the project in development mode
+	@if [ ! -f "./auto-ds-backend/.env" ]; then \
+		cp "./auto-ds-backend/.env.dev" "./auto-ds-backend/.env"; \
+	fi
+	@if [ ! -f "./auto-ds-frontend/.env" ]; then \
+		cp "./auto-ds-frontend/.env.dev" "./auto-ds-frontend/.env"; \
+	fi
+	$(DOCKER_COMPOSE) --profile dev up --build -d
 
 migrate:       ## Apply database migrations
 	$(DOCKER_COMPOSE) run backend python manage.py migrate

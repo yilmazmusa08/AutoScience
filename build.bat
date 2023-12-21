@@ -7,7 +7,8 @@ REM Default target
 :help
 if "%1"=="" (
     echo Available Make targets:
-    echo   build            - Build the project in development mode
+    echo   build            - Build the project in production mode
+    echo   build-dev        - Build the project in development mode
     echo   migrate          - Apply database migrations
     echo   makemigrations   - Create new database migrations
     echo   createsuperuser  - Create a superuser for Django admin
@@ -29,7 +30,17 @@ if not exist .\auto-ds-backend\.env (
 if not exist .\auto-ds-frontend\.env (
     copy .\auto-ds-frontend\.env.dev .\auto-ds-frontend\.env
 )
-%DOCKER_COMPOSE% --profile dev up --build
+%DOCKER_COMPOSE% up --build -d
+goto :end
+
+:build-dev
+if not exist .\auto-ds-backend\.env (
+    copy .\auto-ds-backend\.env.dev .\auto-ds-backend\.env
+)
+if not exist .\auto-ds-frontend\.env (
+    copy .\auto-ds-frontend\.env.dev .\auto-ds-frontend\.env
+)
+%DOCKER_COMPOSE% --profile dev up --build -d
 goto :end
 
 :migrate
