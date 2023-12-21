@@ -57,4 +57,4 @@ COPY . /code/
 RUN python manage.py collectstatic --noinput
 
 # Specify the command to run your application with Gunicorn
-CMD ["gunicorn", "autodstool.wsgi:application", "--bind", "0.0.0.0:8000", "--worker-class", "gevent", "--timeout", "600", "--workers", "16", "--chdir=/code"]
+CMD ["gunicorn", "autodstool.wsgi:application", "--bind", "0.0.0.0:8000", "--worker-class", "gevent", "--timeout", "600", "--workers", "4", "--chdir=/code"]
