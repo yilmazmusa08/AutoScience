@@ -274,3 +274,4 @@ tags
 !.envs/.local/
 package-lock.json
 certbot/*
+*.sqlite3
