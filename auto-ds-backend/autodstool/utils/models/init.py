@@ -17,24 +17,48 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
-from .prep_tools import generate_warning_list, analyze_and_plot_distributions, fill_na, get_Date_Column, replace_special_characters, fill_remaining_na_special, clean_dataframe
+from .prep_tools import generate_warning_list, classify_columns, analyze_and_plot_distributions, fill_na, get_Date_Column, remove_outliers, replace_special_characters, fill_remaining_na_special, clean_dataframe
 
 
-def preprocess(df, model=True):
+def preprocess(df, model=True, remove_redundant=True, Q1=5, Q3=95):
     kt = KolonTipiTahmini1()
 
     data_dict = {}
     delete_cols = []
 
     df = clean_dataframe(df)
+    df = classify_columns(df)
+    def try_convert_to_numeric(column):
+        # Function to attempt conversion of a column to numeric, returning None if unsuccessful
+        try:
+            return pd.to_numeric(column)
+        except ValueError:
+            return None
+
+    if remove_redundant:
+        print("Removing outliers ................")
+        numeric_columns = df.select_dtypes(include=['number']).columns  # Select numeric columns
+        for col in numeric_columns:
+            df = remove_outliers(df, col, Quartile_1=Q1, Quartile_3=Q3)  # Remove outliers for numeric columns
+
+        non_numeric_columns = set(df.columns) - set(numeric_columns)  # Find non-numeric columns
+        for col in non_numeric_columns:
+            converted_col = try_convert_to_numeric(df[col])  # Attempt conversion to numeric
+            if converted_col is not None:
+                df[col] = converted_col  # If conversion successful, replace the column in DataFrame
+                df = remove_outliers(df, col, Quartile_1=Q1, Quartile_3=Q3)  # Remove outliers for converted numeric columns
+        print("Outliers removed successfully")
 
     if model==True:
 
+        print("Preprocessing started, model = True")
         for col in df.columns:
             if df[col].isnull().sum() / len(df) <= 0.5:
                 df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
             if df[col].isnull().sum() / len(df) > 0.5:
-                df.drop(col, axis=1, inplace=True)
+                df.drop(col, axis="columns", inplace=True)
+                print(f"{col} is dropped from Dataframe")
+
 
         for col in df.columns:
             try:
@@ -45,30 +69,34 @@ def preprocess(df, model=True):
             if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
                 delete_cols.append(col)
 
-        # print("DELETED COLUMNS: ", delete_cols)
-        # df = df.drop(columns=delete_cols)
+        print("Deleted columns: ", delete_cols)
+        df = df.drop(columns=delete_cols)
 
         df = df.dropna()  # Drop all rows with NaN values
     
     else:
         necessary_cols = []
+        # creating a copy of dataframe in order to get the data type of the columns with kt class
         df_ = df.copy()
         df_ = df_.dropna()  # Drop all rows with NaN values
 
+        print("Preprocessing started, model = False")
         for col in df_.columns:
             try:
                 data_dict[col] = kt.fit_transform(df_[[col]])[col]
             except KeyError:
                 continue
-
-            if col in data_dict and not (data_dict[col]["Role"] == "unique" or data_dict[col]["Role"] == "id" or data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "date"):
+            # print(f"Column Data Type Dictionary : {data_dict}")
+            if col in data_dict and not (data_dict[col]["Role"] == "unique"):
                 necessary_cols.append(col)
 
+        # print(f"Necessary Columns with appropriate type: {necessary_cols}")
         for col in necessary_cols:
             if df[col].isnull().sum() / len(df) <= 0.5:
                 df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
             if df[col].isnull().sum() / len(df) > 0.5:
-                df.drop(col, axis=1, inplace=True)
+                df.drop(col, axis="columns", inplace=True)
+                print(f"{col} is dropped from Dataframe")
 
         df = fill_remaining_na_special(df)
         df = df.dropna()  # Drop all rows with NaN values
@@ -278,102 +306,91 @@ def create_model(df, problem_type=None, params=[], max_rows=5000):
     return result
 
 
-#CLASS MODEL
+# CLASS MODEL
 class KolonTipiTahmini1:
     def __init__(self, threshold=20):
-        self.threshold=threshold
-        
+        self.threshold = threshold
+
     def fit_transform(self, data, columns=None, max_rows=5000):
+        # Make a copy of the DataFrame 'data' after dropping rows with any NaN values
         if not isinstance(data, pd.DataFrame):
             data=pd.DataFrame(data)
-        if len(data) > max_rows:
-            data=data.sample(n=max_rows)
+        data_copy = data.dropna(axis=0).copy()
 
+        if len(data_copy) > max_rows:
+            data_copy = data_copy.sample(n=max_rows)
 
-        # Create a copy of the DataFrame 'df' after dropping rows with any NaN values
-        df_copy = data.dropna(axis=0).copy()
+        kolon_role = []  # An empty list that can be used to store the role of each column.
 
-        # Loop through each column in the DataFrame
-        for col in df_copy.columns:
-            # Check if the column has a numeric data type and is a float
-            if pd.api.types.is_numeric_dtype(df_copy[col]) and df_copy[col].dtype == float:
-                # Check if all values in the column are integers (have no fractional parts)
-                if df_copy[col].apply(lambda x: x.is_integer() or x == int(x)).all():
-                    # Convert the column to the integer data type
-                    df_copy[col] = df_copy[col].astype(int)
-            else:
-                # If the column is not numeric or not a float, continue to the next column
-                continue
-
-        # Find and store column names that have duplicate data in 'df_copy'
-        duplicated_columns = [col2 for i, col1 in enumerate(df_copy.columns) for col2 in df_copy.columns[i+1:] if df_copy[col1].equals(df_copy[col2])]
-
-        # Drop the columns with duplicate data from the original DataFrame 'data'
-        data.drop(duplicated_columns, axis=1, inplace=True)
-
-
-        kolon_role=[] # An empty list that can be used to store the role of each column.
-        
         if columns:
-            data=data[columns]
+            data_copy = data_copy[columns]
 
-        for col in data.columns:
-            if len(data[col].unique()) == 1:
-                data.drop(col, axis=1, inplace=True)
-            elif len(data[col].unique()) == 2:
+        for col in data_copy.columns:
+            if len(data_copy[col].unique()) == 1:
+                data_copy.drop(col, axis=1, inplace=True)
+            elif len(data_copy[col].unique()) == 2:
                 kolon_role.append('flag')
-            elif all(isinstance(val, int) for val in data[col]) and len(data[col].unique()) == len(data):
+            elif all(isinstance(val, int) for val in data_copy[col]) and len(data_copy[col].unique()) == len(data_copy):
                 kolon_role.append('id')
-            elif all(isinstance(val, int) for val in data[col]) and (re.search(r'(id|ID|Id|iD>|ıd)', col)):
+            elif all(isinstance(val, int) for val in data_copy[col]) and (
+                    re.search(r'(id|ID|Id|iD>|ıd)', col)):
                 kolon_role.append('id')
-            elif all(isinstance(val, int) for val in data[col]) and len(data[col].unique()) == len(data):
-                digits = len(str(data[col].iloc[0]))
-                if (data[col].apply(lambda x: len(str(x)) == digits).sum() / len(data[col])) > 0.9:
+            elif all(isinstance(val, int) for val in data_copy[col]) and len(data_copy[col].unique()) == len(
+                    data_copy):
+                digits = len(str(data_copy[col].iloc[0]))
+                if (data_copy[col].apply(lambda x: len(str(x)) == digits).sum() / len(data_copy[col])) > 0.9:
                     kolon_role.append('id')
-            elif all([isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in data[col].values]) or (data[col].dtype == 'datetime64[ns]'):
+            elif all(
+                    [isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in
+                     data_copy[col].values]) or (data_copy[col].dtype == 'datetime64[ns]'):
                 kolon_role.append('date')
-            elif isinstance(data[col].iloc[0], str) and data[col].str.split().str.len().mean() > 4:
+            elif isinstance(data_copy[col].iloc[0], str) and data_copy[col].str.split().str.len().mean() > 4:
                 kolon_role.append('text')
-            elif len(data[col].unique()) > self.threshold and (all(isinstance(val, int) for val in data[col]) or all(isinstance(val, float) for val in data[col])):
-                if data[col].apply(lambda x: (isinstance(x, (int, float)) and len(str(x).split('.')) > 1 and str(x).split('.')[1] != '0' and str(x).split('.')[1] != '0000')).sum() > 0:
+            elif len(data_copy[col].unique()) > self.threshold and (
+                    all(isinstance(val, int) for val in data_copy[col]) or all(
+                    isinstance(val, float) for val in data_copy[col])):
+                if data_copy[col].apply(
+                        lambda x: (isinstance(x, (int, float)) and len(str(x).split('.')) > 1 and str(
+                            x).split('.')[1] != '0' and str(x).split('.')[1] != '0000')).sum() > 0:
                     kolon_role.append('scalar')
-                elif data[col].apply(lambda x: isinstance(x, (int))).all():
+                elif data_copy[col].apply(lambda x: isinstance(x, (int))).all():
                     kolon_role.append('numeric')
                 else:
                     kolon_role.append('numeric')
-            elif isinstance(data[col].iloc[0], str) and len(data[col].unique()) >= 0.9 * len(data) and data[col].str.split().str.len().mean() < 5:
+            elif isinstance(data_copy[col].iloc[0], str) and len(data_copy[col].unique()) >= 0.9 * len(
+                    data_copy) and data_copy[col].str.split().str.len().mean() < 5:
                 kolon_role.append('identifier')
-            elif len(data[col].unique()) > self.threshold and (all(isinstance(val, int) for val in data[col]) or all(isinstance(val, float) for val in data[col])):
+            elif len(data_copy[col].unique()) > self.threshold and (
+                    all(isinstance(val, int) for val in data_copy[col]) or all(
+                    isinstance(val, float) for val in data_copy[col])):
                 kolon_role.append('numeric')
-            elif len(data[col].unique()) < self.threshold:
+            elif len(data_copy[col].unique()) < self.threshold:
                 kolon_role.append('categoric')
-            elif len(data[col].unique()) == len(data):
+            elif len(data_copy[col].unique()) == len(data_copy):
                 kolon_role.append('unique')
             else:
                 kolon_role.append('identifier')
 
-
         if 'date' in kolon_role:
-            date_cols=[col for col, role in zip(data.columns, kolon_role) if role == 'date']
+            date_cols = [col for col, role in zip(data_copy.columns, kolon_role) if role == 'date']
             for date_col in date_cols:
-                col_idx=data.columns.get_loc(date_col)
-                kolon_role[col_idx]='date'
+                col_idx = data_copy.columns.get_loc(date_col)
+                kolon_role[col_idx] = 'date'
 
         sonuc = []
-        for i in data.columns:
-            if data.columns.get_loc(i) < len(kolon_role):
-                kolon_role_val = kolon_role[data.columns.get_loc(i)]
+        for i in data_copy.columns:
+            if data_copy.columns.get_loc(i) < len(kolon_role):
+                kolon_role_val = kolon_role[data_copy.columns.get_loc(i)]
             else:
                 kolon_role_val = "unknown"
             sonuc.append({
                 'col_name': i,
                 'Role': kolon_role_val})
 
-
-        result={}
+        result = {}
         for d in sonuc:
-            col_name=d.pop('col_name')
-            result[col_name]=d
+            col_name = d.pop('col_name')
+            result[col_name] = d
         return result
     
 
