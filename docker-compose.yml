@@ -34,9 +34,10 @@ services:
       context: ./auto-ds-frontend
       dockerfile: Dockerfile.dev
     env_file:
-      - ./auto-ds-frontend/.env
+      - ./auto-ds-frontend/.env.dev
     volumes:
       - ./auto-ds-frontend:/app
+      - /app/node_modules
     networks:
       - auto-ds-frontend
     ports:
@@ -50,8 +51,20 @@ services:
       context: ./auto-ds-frontend
     ports:
       - 80:80
+      - 443:443
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
     depends_on:
       - frontend-prod
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 networks:
   auto-ds-frontend: {}
