@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from sklearn.metrics.pairwise import cosine_similarity
 # from sklearn.preprocessing import StandardScaler
 # from sklearn.tree import DecisionTreeClassifier,export_graphviz, export_text
 import warnings 
@@ -94,7 +95,7 @@ def correlation_matrix(df, cols):
     fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={'size': 12}, linecolor='w', cmap='RdBu')
     plt.show(block=True)
 
-def col_types(dataframe, cat_th=10, car_th=20):
+def col_types(dataframe, cat_th=10, car_th=40):
     """
 
     Veri setindeki kategorik, numerik ve kategorik fakat kardinal değişkenlerin isimlerini verir.
@@ -132,7 +133,7 @@ def col_types(dataframe, cat_th=10, car_th=20):
         Return olan 3 liste toplamı toplam değişken sayısına eşittir: cat_cols + num_cols + cat_but_car = değişken sayısı
 
     """
-
+    
     # cat_cols, cat_but_car
     cat_cols = [col for col in dataframe.columns if dataframe[col].dtypes == "O"]
     num_but_cat = [col for col in dataframe.columns if dataframe[col].nunique() < cat_th and
@@ -146,15 +147,56 @@ def col_types(dataframe, cat_th=10, car_th=20):
     num_cols = [col for col in dataframe.columns if dataframe[col].dtypes != "O"]
     num_cols = [col for col in num_cols if col not in num_but_cat]
     num_but_car = [col for col in num_cols if dataframe[col].nunique() == len(dataframe) and
-                  dataframe[col].dtypes == "int"]
+                  (dataframe[col].dtypes == "int" or dataframe[col].dtypes == "float")]
     num_cols = [col for col in num_cols if col not in num_but_car]
     
-    # date_cols
-    date_cols = [col for col in cat_cols if dataframe[col].apply(lambda x: pd.to_datetime(x, errors='coerce')).notnull().all()]
+    date_formats = [
+        "%m/%Y", "%m-%Y", "%d/%m/%y", "%m/%d/%y", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y",
+        "%Y-%m-%d", "%Y/%m/%d", "%m-%d-%Y", "%d-%m-%Y", "%d.%m.%y", "%m.%d.%y",
+        "%Y/%m", "%Y-%m", "%m/%d", "%d.%m", "%d/%m", "%m.%d", "%Y", "%d-%m"
+    ]
+
+    date_cols = []
+
+    df_copy = dataframe.copy()
+    df_copy = df_copy.dropna()
+
+    for column in df_copy.columns:
+        values = df_copy[column]
+        for f in date_formats:
+            try:
+                date = pd.to_datetime(values, format=f)
+                if date.dt.strftime(f).eq(values).all():
+                    try:
+                        df_copy[column] = pd.to_datetime(df_copy[column], errors='coerce')
+                        if all([isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in df_copy[column].values]) or (df_copy[column].dtype == 'datetime64[ns]'):
+                            date_cols.append(column)
+                    except:
+                        pass
+            except ValueError:
+                pass
+    print(date_cols)
 
     cat_cols = [col for col in cat_cols if col not in date_cols]
+    car_cols = cat_but_car + num_but_car
+    car_cols = [col for col in car_cols if col not in date_cols]
 
-    return cat_cols, num_cols, cat_but_car + num_but_car, date_cols
+    return cat_cols, num_cols, car_cols, date_cols
+
+def classify_columns(df):
+    cat_cols, num_cols, car_cols, date_cols = col_types(df)
+    for col in car_cols:
+        length = df[col].astype(str).str.len()
+        df.loc[length < 3, col] = "Very Short"
+        df.loc[(3 <= length) & (length < 6) & (df[col] != "Very Short"), col] = "Short"
+        df.loc[(6 <= length) & (length < 10) & (df[col].isin(["Very Short", "Short"])) == False, col] = "Medium"
+        df.loc[(10 <= length) & (length < 15) & (df[col].isin(["Very Short", "Short", "Medium"])) == False, col] = "Long"
+        df.loc[length >= 15, col] = "Very Long or Text"
+    
+    dummy_df = pd.get_dummies(df[cat_cols], drop_first=True)
+    df = pd.concat([df.drop(columns=cat_cols), dummy_df], axis=1)
+
+    return df
 
 
 def clean_dataframe(df, forbidden_symbols=["'", '"', "/", "[", "]", "{", "}", "(", ")", " "]):
@@ -168,45 +210,89 @@ def clean_dataframe(df, forbidden_symbols=["'", '"', "/", "[", "]", "{", "}", "(
         df[col_cleaned] = df[col_cleaned].astype(str).str.replace(symbol, "")
     
     return df
+
+def remove_outliers(df, column_name, Quartile_1=1, Quartile_3=99, remove=True):
+    # Create a copy of the original DataFrame
+    df_copy = df.copy()
     
+    # Select the column for outlier removal
+    column_data = df_copy[column_name]
+    
+    # Convert Quartiles to a percentage value
+    Quartile_1 = Quartile_1 / 100
+    Quartile_3 = Quartile_3 / 100
+
+    # Calculate the IQR (Interquartile Range)
+    IQR = Quartile_3 - Quartile_1
+    
+    # Define lower and upper bounds for outliers
+    lower_bound = Quartile_1 - 1.5 * IQR
+    upper_bound = Quartile_3 + 1.5 * IQR
+    
+    # Identify outliers
+    outliers = (column_data < lower_bound) | (column_data > upper_bound)
+    
+    if remove:
+        # Remove outliers from the DataFrame
+        df_copy = df_copy[~outliers]
+    
+    return df_copy
+
+
 def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=2):
     forbidden_symbols = ["'", '"', "/", "[", "]", "{", "}", "(", ")"]
 
     for _ in range(max_attempts):
-        if pd.notna(row[col]):
+        # If the value is not NaN, return the value directly
+        if pd.notnull(row[col]) and str(row[col]).lower() not in ["nan", "na"]:
+            # print(f"Returning the value {row[col]}")
             return row[col]
 
         query = []
 
-        obj = list(df.select_dtypes(include=['object']).columns)
-        num = list(df.select_dtypes(exclude=['object']).columns)
+        # Object and numerical columns separation
+        obj_cols = df.select_dtypes(include=['object']).columns
+        num_cols = df.select_dtypes(exclude=['object']).columns
 
-        for o in obj:
-            if pd.notna(row[o]):
+        # Categorizing strings by extended length categories
+        for o in obj_cols:
+            if not pd.isna(row[o]):
+                value = str(row[o])
                 for i in forbidden_symbols:
-                    value = str(row[o]).replace(i, "")
-                    query.append(f'({o} == "{value}")')
+                    value = value.replace(i, "")
+                query.append(f'({o} == "{value}")')
 
-        for n in num:
-            if pd.notna(row[n]):
+        # Creating query for numerical columns
+        print(f"Checking numeric columns for column {col}")
+        for n in num_cols:
+            if not pd.isna(row[n]):
                 query.append(f"({n} >= {row[n] * lower_coeff})")
                 query.append(f"({n} <= {row[n] * upper_coeff})")
 
+        # Joining the created query
         query = " and ".join(query)
-        print("query : ", query)
+        print(f"query is: {query}")
+
 
         try:
+            # Creating subset using the query
             sub = df.query(query)
+            print(f"subquery is: {sub}")
+
             if len(sub) == 0:
                 raise ValueError
             else:
+                # Returning the mean of a specific column of the subset
+                print(f"Returning the value: {sub[col].mean()}")
                 return sub[col].mean()
         except ValueError:
-            lower_coeff *= 0.8  # Decrease the lower threshold by 20%
-            upper_coeff *= 1.2  # Increase the upper threshold by 20%
+            lower_coeff *= 0.8  # Decrease lower limit by 20%
+            upper_coeff *= 1.2  # Increase upper limit by 20%
 
-    # If all attempts are exhausted, return None
+    # If all attempts fail, return None
     return None
+
+
 
 def fill_remaining_na_special(df, nan_replacement=-9999):
     """
