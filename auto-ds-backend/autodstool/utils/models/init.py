@@ -17,7 +17,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
-from .prep_tools import generate_warning_list, classify_columns, analyze_and_plot_distributions, fill_na, get_Date_Column, remove_outliers, replace_special_characters, fill_remaining_na_special, clean_dataframe
+from .prep_tools import KolonTipiTahmini1, convert_column_based_on_majority, generate_warning_list, classify_columns, analyze_and_plot_distributions, fill_na, get_Date_Column, remove_outliers, replace_special_characters, fill_remaining_na_special, clean_dataframe
 
 
 def preprocess(df, model=True, remove_redundant=True, Q1=5, Q3=95):
@@ -26,68 +26,45 @@ def preprocess(df, model=True, remove_redundant=True, Q1=5, Q3=95):
     data_dict = {}
     delete_cols = []
 
-    df = clean_dataframe(df)
     df = classify_columns(df)
-    def try_convert_to_numeric(column):
-        # Function to attempt conversion of a column to numeric, returning None if unsuccessful
+    df = clean_dataframe(df)
+
+    necessary_cols = []
+    # creating a copy of dataframe in order to get the data type of the columns with kt class
+    df_ = df.copy()
+    df_ = df_.dropna()  # Drop all rows with NaN values
+
+    for column in df.columns:
         try:
-            return pd.to_numeric(column)
-        except ValueError:
-            return None
+            df[column] = convert_column_based_on_majority(df[column])
+        except Exception as e:
+            print(f"An error occurred while processing column '{column}': {e}")
+            # Handle the error as needed, for example, you can choose to skip the column or log the error.
+
+    data_dict = kt.fit_transform(df_)
 
     if remove_redundant:
+        print("=======================================================================================")
         print("Removing outliers ................")
-        numeric_columns = df.select_dtypes(include=['number']).columns  # Select numeric columns
-        for col in numeric_columns:
-            df = remove_outliers(df, col, Quartile_1=Q1, Quartile_3=Q3)  # Remove outliers for numeric columns
+        for col in df.columns:
+            print(col, data_dict[col]["Role"])
+            if col in data_dict and (data_dict[col]["Role"] == "scalar"):
+                print(f"Outliers are removed for column:", col)
+                df = remove_outliers(df, col, Quartile_1=Q1, Quartile_3=Q3)  # Remove outliers for numeric columns
 
-        non_numeric_columns = set(df.columns) - set(numeric_columns)  # Find non-numeric columns
-        for col in non_numeric_columns:
-            converted_col = try_convert_to_numeric(df[col])  # Attempt conversion to numeric
-            if converted_col is not None:
-                df[col] = converted_col  # If conversion successful, replace the column in DataFrame
-                df = remove_outliers(df, col, Quartile_1=Q1, Quartile_3=Q3)  # Remove outliers for converted numeric columns
+        print("=======================================================================================")
         print("Outliers removed successfully")
 
     if model==True:
-
+        
+        print("=======================================================================================")
         print("Preprocessing started, model = True")
-        for col in df.columns:
-            if df[col].isnull().sum() / len(df) <= 0.5:
-                df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
-            if df[col].isnull().sum() / len(df) > 0.5:
-                df.drop(col, axis="columns", inplace=True)
-                print(f"{col} is dropped from Dataframe")
-
-
-        for col in df.columns:
-            try:
-                data_dict[col] = kt.fit_transform(df[[col]])[col]
-            except KeyError:
-                continue
-
-            if col in data_dict and (data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
-                delete_cols.append(col)
-
-        print("Deleted columns: ", delete_cols)
-        df = df.drop(columns=delete_cols)
-
-        df = df.dropna()  # Drop all rows with NaN values
-    
-    else:
-        necessary_cols = []
-        # creating a copy of dataframe in order to get the data type of the columns with kt class
-        df_ = df.copy()
-        df_ = df_.dropna()  # Drop all rows with NaN values
-
-        print("Preprocessing started, model = False")
+        print("=======================================================================================")
         for col in df_.columns:
-            try:
-                data_dict[col] = kt.fit_transform(df_[[col]])[col]
-            except KeyError:
-                continue
             # print(f"Column Data Type Dictionary : {data_dict}")
-            if col in data_dict and not (data_dict[col]["Role"] == "unique"):
+            if col in data_dict and not (data_dict[col]["Role"] == "id" or
+                                          data_dict[col]["Role"] == "object" or
+                                            data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
                 necessary_cols.append(col)
 
         # print(f"Necessary Columns with appropriate type: {necessary_cols}")
@@ -95,10 +72,48 @@ def preprocess(df, model=True, remove_redundant=True, Q1=5, Q3=95):
             if df[col].isnull().sum() / len(df) <= 0.5:
                 df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
             if df[col].isnull().sum() / len(df) > 0.5:
-                df.drop(col, axis="columns", inplace=True)
-                print(f"{col} is dropped from Dataframe")
+                df[col] = df[col].apply(lambda x: 0 if pd.isnull(x) else 1)
+                print(f"{col} is converted to binary 0 for nans 1 for existing values")
 
+        print("Deleted columns: ", delete_cols)
+        print("=======================================================================================")
+        df = df.drop(columns=delete_cols)
+        print("Before filling special =================================================================")
+        print(df.info())
+        print("=======================================================================================")
         df = fill_remaining_na_special(df)
+        print("After filling special =================================================================")
+        print(df.info())
+        print("=======================================================================================")
+
+        df = df.dropna()  # Drop all rows with NaN values
+    
+    else:
+
+        print("=======================================================================================")
+        print("Preprocessing started, model = False")
+        print("=======================================================================================")
+        for col in df_.columns:
+            # print(f"Column Data Type Dictionary : {data_dict}")
+            if col in data_dict and not (data_dict[col]["Role"] == "id" or
+                                          data_dict[col]["Role"] == "object" or
+                                            data_dict[col]["Role"] == "text" or data_dict[col]["Role"] == "date"):
+                necessary_cols.append(col)
+
+        # print(f"Necessary Columns with appropriate type: {necessary_cols}")
+        for col in necessary_cols:
+            if df[col].isnull().sum() / len(df) <= 0.5:
+                df[col] = df.apply(lambda row: fill_na(row, col, df=df), axis=1)
+            if df[col].isnull().sum() / len(df) > 0.5:
+                df[col] = df[col].apply(lambda x: 0 if pd.isnull(x) else 1)
+                print(f"{col} is converted to binary 0 for nans 1 for existing values")
+        print("Before filling special =================================================================")
+        print(df.info())
+        print("=======================================================================================")
+        df = fill_remaining_na_special(df)
+        print("After filling special =================================================================")
+        print(df.info())
+        print("=======================================================================================")
         df = df.dropna()  # Drop all rows with NaN values
         
 
@@ -305,93 +320,6 @@ def create_model(df, problem_type=None, params=[], max_rows=5000):
 
     return result
 
-
-# CLASS MODEL
-class KolonTipiTahmini1:
-    def __init__(self, threshold=20):
-        self.threshold = threshold
-
-    def fit_transform(self, data, columns=None, max_rows=5000):
-        # Make a copy of the DataFrame 'data' after dropping rows with any NaN values
-        if not isinstance(data, pd.DataFrame):
-            data=pd.DataFrame(data)
-        data_copy = data.dropna(axis=0).copy()
-
-        if len(data_copy) > max_rows:
-            data_copy = data_copy.sample(n=max_rows)
-
-        kolon_role = []  # An empty list that can be used to store the role of each column.
-
-        if columns:
-            data_copy = data_copy[columns]
-
-        for col in data_copy.columns:
-            if len(data_copy[col].unique()) == 1:
-                data_copy.drop(col, axis=1, inplace=True)
-            elif len(data_copy[col].unique()) == 2:
-                kolon_role.append('flag')
-            elif all(isinstance(val, int) for val in data_copy[col]) and len(data_copy[col].unique()) == len(data_copy):
-                kolon_role.append('id')
-            elif all(isinstance(val, int) for val in data_copy[col]) and (
-                    re.search(r'(id|ID|Id|iD>|ıd)', col)):
-                kolon_role.append('id')
-            elif all(isinstance(val, int) for val in data_copy[col]) and len(data_copy[col].unique()) == len(
-                    data_copy):
-                digits = len(str(data_copy[col].iloc[0]))
-                if (data_copy[col].apply(lambda x: len(str(x)) == digits).sum() / len(data_copy[col])) > 0.9:
-                    kolon_role.append('id')
-            elif all(
-                    [isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in
-                     data_copy[col].values]) or (data_copy[col].dtype == 'datetime64[ns]'):
-                kolon_role.append('date')
-            elif isinstance(data_copy[col].iloc[0], str) and data_copy[col].str.split().str.len().mean() > 4:
-                kolon_role.append('text')
-            elif len(data_copy[col].unique()) > self.threshold and (
-                    all(isinstance(val, int) for val in data_copy[col]) or all(
-                    isinstance(val, float) for val in data_copy[col])):
-                if data_copy[col].apply(
-                        lambda x: (isinstance(x, (int, float)) and len(str(x).split('.')) > 1 and str(
-                            x).split('.')[1] != '0' and str(x).split('.')[1] != '0000')).sum() > 0:
-                    kolon_role.append('scalar')
-                elif data_copy[col].apply(lambda x: isinstance(x, (int))).all():
-                    kolon_role.append('numeric')
-                else:
-                    kolon_role.append('numeric')
-            elif isinstance(data_copy[col].iloc[0], str) and len(data_copy[col].unique()) >= 0.9 * len(
-                    data_copy) and data_copy[col].str.split().str.len().mean() < 5:
-                kolon_role.append('identifier')
-            elif len(data_copy[col].unique()) > self.threshold and (
-                    all(isinstance(val, int) for val in data_copy[col]) or all(
-                    isinstance(val, float) for val in data_copy[col])):
-                kolon_role.append('numeric')
-            elif len(data_copy[col].unique()) < self.threshold:
-                kolon_role.append('categoric')
-            elif len(data_copy[col].unique()) == len(data_copy):
-                kolon_role.append('unique')
-            else:
-                kolon_role.append('identifier')
-
-        if 'date' in kolon_role:
-            date_cols = [col for col, role in zip(data_copy.columns, kolon_role) if role == 'date']
-            for date_col in date_cols:
-                col_idx = data_copy.columns.get_loc(date_col)
-                kolon_role[col_idx] = 'date'
-
-        sonuc = []
-        for i in data_copy.columns:
-            if data_copy.columns.get_loc(i) < len(kolon_role):
-                kolon_role_val = kolon_role[data_copy.columns.get_loc(i)]
-            else:
-                kolon_role_val = "unknown"
-            sonuc.append({
-                'col_name': i,
-                'Role': kolon_role_val})
-
-        result = {}
-        for d in sonuc:
-            col_name = d.pop('col_name')
-            result[col_name] = d
-        return result
     
 
 def analysis(df: pd.DataFrame, target=None, threshold_target=0.2, max_rows=5000):

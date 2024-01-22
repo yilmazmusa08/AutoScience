@@ -233,17 +233,17 @@ def remove_outliers(df, column_name, Quartile_1=1, Quartile_3=99, remove=True):
     
     # Select the column for outlier removal
     column_data = df_copy[column_name]
-    
-    # Convert Quartiles to a percentage value
-    Quartile_1 = Quartile_1 / 100
-    Quartile_3 = Quartile_3 / 100
 
+    # Calculate the Quartiles using numpy
+    q1 = np.percentile(column_data, Quartile_1)
+    q3 = np.percentile(column_data, Quartile_3)
+    
     # Calculate the IQR (Interquartile Range)
-    IQR = Quartile_3 - Quartile_1
+    IQR = q3 - q1
     
     # Define lower and upper bounds for outliers
-    lower_bound = Quartile_1 - 1.5 * IQR
-    upper_bound = Quartile_3 + 1.5 * IQR
+    lower_bound = q1 - 1.5 * IQR
+    upper_bound = q3 + 1.5 * IQR
     
     # Identify outliers
     outliers = (column_data < lower_bound) | (column_data > upper_bound)

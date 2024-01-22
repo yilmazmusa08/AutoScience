@@ -6,16 +6,17 @@
 
 # import joblib
 import pandas as pd
+import joblib
+import re
+import os
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 from sklearn.metrics.pairwise import cosine_similarity
 # from sklearn.preprocessing import StandardScaler
 # from sklearn.tree import DecisionTreeClassifier,export_graphviz, export_text
 import warnings 
 warnings.filterwarnings("ignore")
 # import statsmodels.stats.api as sms
-from scipy.stats import shapiro, levene, ttest_ind
 # from statsmodels.stats.proportion import proportions_ztest
 # from skompiler import skompile
 # import graphviz
@@ -23,211 +24,130 @@ import scipy.stats
 from sklearn.preprocessing import LabelEncoder
 from fitter import Fitter
 
-def describe_dataframe(df):
-    """
-    Verilen veri çerçevesindeki tüm sütunların NaN, benzersiz değerler, eşsiz değerler, açıklama vb. gibi 
-    istatistiksel özelliklerini döndürür.
-    
-    Parametreler:
-        df (pandas.DataFrame): Özetlenecek veri çerçevesi
-        
-    Döndürülen Değerler:
-        pandas.DataFrame: Tüm sütunların istatistiksel özellikleri
-    
-    """
-    df = df.select_dtypes(include=['float64', 'int64', 'float32', 'int32', 'float16', 'int16'])
-    na_count = df.isna().sum()
-    
-    unique_values = df.nunique()
-    
-    nunique_values = df.apply(pd.Series.nunique)
-    
-    desc_df = df.describe([0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99]).T
-    
-    result_df = pd.concat([na_count, unique_values, nunique_values, desc_df], axis=1)
-    
-    # Create a DataFrame with Calculated Results
-    result_df.columns = ['NaN_values', 'Unique_values', 'Nunique_values', 'Count', 'Mean', 'Std', 'Min', '1%', '5%', '25%', '50%', '75%', '95%', '99%', 'Max']
-    
-    return result_df
 
-def check_df(dataframe, head=5):
-    print("##################### Shape #####################")
-    print(dataframe.shape)
-    print("##################### Types #####################")
-    print(dataframe.dtypes)
-    print("##################### NA #####################")
-    print(dataframe.isnull().sum())
-    print("##################### Quantiles #####################")
-    print(dataframe.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
-    print("##################### Head #####################")
-    return dataframe.head(head)
+def col_type_pred(df):
+    kt = KolonTipiTahmini1()
 
-def cat_summary(dataframe, col_name, plot=False):
-    print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
-                        "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
-    print("##########################################")
-    if plot:
-        sns.countplot(x=dataframe[col_name], data=dataframe)
-        plt.show(block=True)
-
-def num_summary(dataframe, numerical_col, plot=False):
-    quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
-    print(dataframe[numerical_col].describe(quantiles).T)
-
-    if plot:
-        dataframe[numerical_col].hist(bins=20)
-        plt.xlabel(numerical_col)
-        plt.title(numerical_col)
-        plt.show(block=True)
-
-def target_summary_with_num(dataframe, target, numerical_col):
-    print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
-
-def target_summary_with_cat(dataframe, target, categorical_col):
-    print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
-
-def correlation_matrix(df, cols):
-    fig = plt.gcf()
-    fig.set_size_inches(10, 8)
-    plt.xticks(fontsize=10)
-    plt.yticks(fontsize=10)
-    fig = sns.heatmap(df[cols].corr(), annot=True, linewidths=0.5, annot_kws={'size': 12}, linecolor='w', cmap='RdBu')
-    plt.show(block=True)
-
-def col_types(dataframe, cat_th=10, car_th=40):
-    """
-
-    Veri setindeki kategorik, numerik ve kategorik fakat kardinal değişkenlerin isimlerini verir.
-    Not: Kategorik değişkenlerin içerisine numerik görünümlü kategorik değişkenler de dahildir.
-
-    Parameters
-    ------
-        dataframe: dataframe
-                Değişken isimleri alınmak istenilen dataframe
-        cat_th: int, optional
-                numerik fakat kategorik olan değişkenler için sınıf eşik değeri
-        car_th: int, optinal
-                kategorik fakat kardinal değişkenler için sınıf eşik değeri
-
-    Returns
-    ------
-        cat_cols: list
-                Kategorik değişken listesi
-        num_cols: list
-                Numerik değişken listesi
-        cat_but_car: list
-                Kategorik görünümlü kardinal değişken listesi
-
-    Examples
-    ------
-        import seaborn as sns
-        df = sns.load_dataset("iris")
-        print(grab_col_names(df))
-
-
-    Notes
-    ------
-        cat_cols + num_cols + cat_but_car = toplam değişken sayısı
-        num_but_cat cat_cols'un içerisinde.
-        Return olan 3 liste toplamı toplam değişken sayısına eşittir: cat_cols + num_cols + cat_but_car = değişken sayısı
-
-    """
-    
-    # cat_cols, cat_but_car
-    cat_cols = [col for col in dataframe.columns if dataframe[col].dtypes == "O"]
-    num_but_cat = [col for col in dataframe.columns if dataframe[col].nunique() < cat_th and
-                   dataframe[col].dtypes != "O"]
-    cat_but_car = [col for col in dataframe.columns if dataframe[col].nunique() > car_th and
-                   dataframe[col].dtypes == "O"]
-    cat_cols = cat_cols + num_but_cat
-    cat_cols = [col for col in cat_cols if col not in cat_but_car]
-
-    # num_cols
-    num_cols = [col for col in dataframe.columns if dataframe[col].dtypes != "O"]
-    num_cols = [col for col in num_cols if col not in num_but_cat]
-    num_but_car = [col for col in num_cols if dataframe[col].nunique() == len(dataframe) and
-                  (dataframe[col].dtypes == "int" or dataframe[col].dtypes == "float")]
-    num_cols = [col for col in num_cols if col not in num_but_car]
-    
-    date_formats = [
-        "%m/%Y", "%m-%Y", "%d/%m/%y", "%m/%d/%y", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y",
-        "%Y-%m-%d", "%Y/%m/%d", "%m-%d-%Y", "%d-%m-%Y", "%d.%m.%y", "%m.%d.%y",
-        "%Y/%m", "%Y-%m", "%m/%d", "%d.%m", "%d/%m", "%m.%d", "%Y", "%d-%m"
-    ]
-
+    data_dict = {}
+    scalar_cols = []
+    categoric_cols = []
+    id_cols = []
+    text_cols = []
+    numeric_cols = []
     date_cols = []
 
-    df_copy = dataframe.copy()
-    df_copy = df_copy.dropna()
+    df_ = df.copy()
+    df_ = df_.dropna()  # Drop all rows with NaN values
 
-    for column in df_copy.columns:
-        values = df_copy[column]
-        for f in date_formats:
-            try:
-                date = pd.to_datetime(values, format=f)
-                if date.dt.strftime(f).eq(values).all():
-                    try:
-                        df_copy[column] = pd.to_datetime(df_copy[column], errors='coerce')
-                        if all([isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in df_copy[column].values]) or (df_copy[column].dtype == 'datetime64[ns]'):
-                            date_cols.append(column)
-                    except:
-                        pass
-            except ValueError:
-                pass
-    print(date_cols)
+    for col in df_.columns:
+        try:
+            data_dict[col] = kt.fit_transform(df_[[col]])[col]
+            # print(f"Column Data Type Dictionary : {data_dict}")
+            if col in data_dict and (data_dict[col]["Role"] == "date"):
+                date_cols.append(col)
+            elif col in data_dict and (data_dict[col]["Role"] == "text"):
+                text_cols.append(col)
+            elif col in data_dict and (data_dict[col]["Role"] == "scalar"):
+                scalar_cols.append(col)
+            elif col in data_dict and (data_dict[col]["Role"] == "id" or data_dict[col]["Role"] == "identifier" or data_dict[col]["Role"] == "object"):
+                id_cols.append(col)
+            elif col in data_dict and (data_dict[col]["Role"] == "categoric"):
+                categoric_cols.append(col)
+                
+        except KeyError:
+            continue
 
-    cat_cols = [col for col in cat_cols if col not in date_cols]
-    car_cols = cat_but_car + num_but_car
-    car_cols = [col for col in car_cols if col not in date_cols]
 
-    return cat_cols, num_cols, car_cols, date_cols
+    return scalar_cols, numeric_cols, categoric_cols, date_cols, text_cols, id_cols
 
 def classify_columns(df):
-    cat_cols, num_cols, car_cols, date_cols = col_types(df)
-    for col in car_cols:
-        length = df[col].astype(str).str.len()
-        df.loc[length < 3, col] = "Very Short"
-        df.loc[(3 <= length) & (length < 6) & (df[col] != "Very Short"), col] = "Short"
-        df.loc[(6 <= length) & (length < 10) & (df[col].isin(["Very Short", "Short"])) == False, col] = "Medium"
-        df.loc[(10 <= length) & (length < 15) & (df[col].isin(["Very Short", "Short", "Medium"])) == False, col] = "Long"
-        df.loc[length >= 15, col] = "Very Long or Text"
+    scalar_cols, numeric_cols, categoric_cols, date_cols, text_cols, id_cols = col_type_pred(df)
+    if text_cols:
+        for col in text_cols:
+            length = df[col].astype(str).str.len()
+            df.loc[length < 3, col] = "Very Short"
+            df.loc[(3 <= length) & (length < 6) & (df[col] != "Very Short"), col] = "Short"
+            df.loc[(6 <= length) & (length < 10) & (df[col].isin(["Very Short", "Short"])) == False, col] = "Medium"
+            df.loc[(10 <= length) & (length < 15) & (df[col].isin(["Very Short", "Short", "Medium"])) == False, col] = "Long"
+            df.loc[length >= 15, col] = "Very Long or Text"
     
-    dummy_df = pd.get_dummies(df[cat_cols], drop_first=True)
-    df = pd.concat([df.drop(columns=cat_cols), dummy_df], axis=1)
+    if categoric_cols:
+        try:
+            dummy_df = pd.get_dummies(df[categoric_cols], drop_first=True)
+        except Exception as e:
+            print("Error creating dummy variables:", e)
+            dummy_df = None
+
+        if dummy_df is not None:
+            df = pd.concat([df, dummy_df], axis=1)
 
     return df
 
 
-def clean_dataframe(df, forbidden_symbols=["'", '"', "/", "[", "]", "{", "}", "(", ")", " "]):
+def clean_dataframe(df, forbidden_symbols=["'", '"', ":", "=", "/", "[", "]", "{", "}", "(", ")", " ", ".", ",", ">", "<"]):
+    print(f"Column name lists: {df.columns}")
+
+    # Clean column names
+    cleaned_columns = []
     for col in df.columns:
         col_cleaned = col
         for symbol in forbidden_symbols:
             col_cleaned = col_cleaned.replace(symbol, "")
-        
         col_cleaned = col_cleaned.strip()  # Remove leading and trailing spaces
-        df.rename(columns={col: col_cleaned}, inplace=True)
-        df[col_cleaned] = df[col_cleaned].astype(str).str.replace(symbol, "")
-    
+        cleaned_columns.append(col_cleaned)
+
+    # Rename columns
+    df.columns = cleaned_columns
+
+    # Clean values in each column of type 'object'
+    for col in df.select_dtypes(include='object').columns:
+        df[col] = df[col].astype(str).str.replace('|'.join(forbidden_symbols), "")
+
+
+    print(f"Cleaned column name lists: {df.columns}")
     return df
+
+# Function to convert column based on majority type
+def convert_column_based_on_majority(column):
+    try:
+        majority_value = column.mode().iloc[0]
+        
+        if isinstance(majority_value, str):
+            majority_type = str
+        else:
+            majority_type = majority_value.dtype
+        
+        print(f"Column: {column}, Majority type: {majority_type}")
+        return column.astype(majority_type)
+    except Exception as e:
+        # Handle the exception, you can print an error message or take other actions
+        print(f"Error converting column: {e}")
+        return column  # Returning the original column in case of an error
+
+
+
 
 def remove_outliers(df, column_name, Quartile_1=1, Quartile_3=99, remove=True):
     # Create a copy of the original DataFrame
+    print("=======================================================================================")
+    print(f"Before Outlier Removal")
+    print(df.info())
+    print("=======================================================================================")
     df_copy = df.copy()
     
     # Select the column for outlier removal
     column_data = df_copy[column_name]
-    
-    # Convert Quartiles to a percentage value
-    Quartile_1 = Quartile_1 / 100
-    Quartile_3 = Quartile_3 / 100
 
+    # Calculate the Quartiles using numpy
+    q1 = np.percentile(column_data, Quartile_1)
+    q3 = np.percentile(column_data, Quartile_3)
+    
     # Calculate the IQR (Interquartile Range)
-    IQR = Quartile_3 - Quartile_1
+    IQR = q3 - q1
     
     # Define lower and upper bounds for outliers
-    lower_bound = Quartile_1 - 1.5 * IQR
-    upper_bound = Quartile_3 + 1.5 * IQR
+    lower_bound = q1 - 1.5 * IQR
+    upper_bound = q3 + 1.5 * IQR
     
     # Identify outliers
     outliers = (column_data < lower_bound) | (column_data > upper_bound)
@@ -235,6 +155,10 @@ def remove_outliers(df, column_name, Quartile_1=1, Quartile_3=99, remove=True):
     if remove:
         # Remove outliers from the DataFrame
         df_copy = df_copy[~outliers]
+    print("=======================================================================================")
+    print(f"After Outlier Removal")
+    print(df_copy.info())
+    print("=======================================================================================")
     
     return df_copy
 
@@ -244,7 +168,7 @@ def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=2
 
     for _ in range(max_attempts):
         # If the value is not NaN, return the value directly
-        if pd.notnull(row[col]) and str(row[col]).lower() not in ["nan", "na"]:
+        if pd.notnull(row[col]) or str(row[col]).lower() not in ["nan", "na"]:
             # print(f"Returning the value {row[col]}")
             return row[col]
 
@@ -255,6 +179,7 @@ def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=2
         num_cols = df.select_dtypes(exclude=['object']).columns
 
         # Categorizing strings by extended length categories
+        print(f"Checking object columns for column {col}")
         for o in obj_cols:
             if not pd.isna(row[o]):
                 value = str(row[o])
@@ -278,13 +203,20 @@ def fill_na(row, col, lower_coeff=0.8, upper_coeff=1.20, df=None, max_attempts=2
             # Creating subset using the query
             sub = df.query(query)
             print(f"subquery is: {sub}")
+            print("Type of the values:", df[col].dtype)
 
             if len(sub) == 0:
                 raise ValueError
             else:
-                # Returning the mean of a specific column of the subset
-                print(f"Returning the value: {sub[col].mean()}")
-                return sub[col].mean()
+                if df[col].dtype == 'object':
+                    # For object columns, fill with the mode
+                    print(f"Returning the value: {sub[col].mode().iloc[0]}")
+                    return sub[col].mode().iloc[0]
+                else:
+                    # For numerical columns, fill with the mean
+                    print(f"Returning the value: {sub[col].mean()}")
+                    return sub[col].mean()
+
         except ValueError:
             lower_coeff *= 0.8  # Decrease lower limit by 20%
             upper_coeff *= 1.2  # Increase upper limit by 20%
@@ -495,128 +427,153 @@ def analyze_and_plot_distributions(df):
     return plot_results, result_dict
 
 
-def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
-    quartile1 = dataframe[col_name].quantile(q1)
-    quartile3 = dataframe[col_name].quantile(q3)
-    interquantile_range = quartile3 - quartile1
-    up_limit = quartile3 + 1.5 * interquantile_range
-    low_limit = quartile1 - 1.5 * interquantile_range
-    return low_limit, up_limit
-
-
-def replace_with_thresholds(dataframe, variable):
-    low_limit, up_limit = outlier_thresholds(dataframe, variable)
-    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
-    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
-
-def check_outlier(dataframe, col_name, q1=0.25, q3=0.75):
-    low_limit, up_limit = outlier_thresholds(dataframe, col_name, q1, q3)
-    if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
-        return True
-    else:
-        return False
-
-def one_hot_encoder(dataframe, categorical_cols, drop_first=False):
-    dataframe = pd.get_dummies(dataframe, columns=categorical_cols, drop_first=drop_first)
-    return dataframe
-    
-
-def test_normality(df, col1_name, col2_name, alpha=0.05):
-    '''
-    Test whether two columns in a pandas DataFrame are normally distributed using the Shapiro-Wilk test.
-    Returns True if both columns are likely normally distributed (p-values > alpha), False otherwise.
-    
-    Parameters:
-    -----------
-    df : pandas DataFrame
-        The DataFrame containing the data to test.
-    col1_name : str
-        The name of the first column to test.
-    col2_name : str
-        The name of the second column to test.
-    alpha : float, optional
-        The significance level to use. Default is 0.05.
-        
-    Returns:
-    --------
-    bool
-        True if both columns are likely normally distributed, False otherwise.
-    '''
-    col1 = df[col1_name]
-    col2 = df[col2_name]
-    
-    stat1, p1 = shapiro(col1)
-    stat2, p2 = shapiro(col2)
-    
-    if p1 > alpha and p2 > alpha:
-        return True
-    else:
-        return False
-
-def test_variance_homogeneity(df, col1_name, col2_name, alpha=0.05):
-    '''
-    Test for variance homogeneity between two columns in a pandas DataFrame using the Levene's test.
-    Returns True if the variances are homogeneous (p-value > alpha), False otherwise.
-    
-    Parameters:
-    -----------
-    df : pandas DataFrame
-        The DataFrame containing the data to test.
-    col1_name : str
-        The name of the first column to test.
-    col2_name : str
-        The name of the second column to test.
-    alpha : float, optional
-        The significance level to use. Default is 0.05.
-        
-    Returns:
-    --------
-    bool
-        True if the variances are homogeneous, False otherwise.
-    '''
-    col1 = df[col1_name]
-    col2 = df[col2_name]
-    
-    stat, p = levene(col1, col2)
-    
-    if p > alpha:
-        return True
-    else:
-        return False
-
-def compare_means(df, col1_name, col2_name, alpha=0.05):
-    '''
-    Compare the means of two columns in a pandas DataFrame using a two-sample t-test.
-    Returns True if there is a significant difference between the means (p-value < alpha), False otherwise.
-    
-    Parameters:
-    -----------
-    df : pandas DataFrame
-        The DataFrame containing the data to test.
-    col1_name : str
-        The name of the first column to test.
-    col2_name : str
-        The name of the second column to test.
-    alpha : float, optional
-        The significance level to use. Default is 0.05.
-        
-    Returns:
-    --------
-    bool
-        True if there is a significant difference between the means, False otherwise.
-    '''
-    col1 = df[col1_name]
-    col2 = df[col2_name]
-    
-    stat, p = ttest_ind(col1, col2)
-    
-    if p < alpha:
-        return True
-    else:
-        return False
 
 def replace_special_characters(col_name):
-    forbidden_symbols = ['/', '|', '\\', '.','*']
+    forbidden_symbols = ['/', '|', '\\', '.', '*']
     for symbol in forbidden_symbols:
         col_name = col_name.replace(symbol, '_')
     return col_name
+
+def separate_words(input_string):
+    words = re.findall('[A-Z]+[a-z]*', input_string)
+    filtered_words = [word for word in words if len(word) >= 2]
+    return filtered_words
+
+class ColumnTypePredictor:
+    def __init__(self, model_path='col_pred_model.joblib'):
+        # Get the absolute path to the script's directory
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        
+        # Construct the absolute path to the model file
+        self.model_path = os.path.join(script_directory, model_path)
+        self.loaded_model = None
+
+    def load_model(self):
+        # Load the trained model
+        self.loaded_model = joblib.load(self.model_path)
+
+    def predict_column_type(self, df, col):
+        # Data processing logic
+        data = pd.DataFrame(columns=['column', 'distm', 'dists', 'wc', 'wcs', 'len', 'lens', 'type', 'uniqR'])
+
+        if len(df) > 5000:
+            df = df.sample(5000)
+        for c in df:
+            m = df[c].mode()
+            if m is not None and len(m) > 0:
+                m = m[0]
+                length = np.mean([len(str(s)) for s in df[c].values])
+                lengths = np.std([len(str(s)) for s in df[c].values])
+                wc = np.mean([len(str(s).split(' ')) for s in df[c].values])
+                wcs = np.std([len(str(s).split(' ')) for s in df[c].values])
+
+                dist = list(df[c].value_counts().to_dict().values())
+                dist = [d / len(df) for d in dist]
+                distm = np.mean(dist)
+                dists = np.std(dist)
+
+                data.loc[len(data) + 1] = [c, distm, dists, wc, wcs, length, lengths,
+                                            df[c].dtype, df[c].nunique() / len(df)]
+
+        data['type'] = data['type'].astype(str)  # Convert the column to string type
+
+        # Use a lambda function and apply to replace values
+        data['type'] = data['type'].apply(lambda x: 1 if 'float' in x else (0 if 'int' in x else None))
+
+        # Drop rows with None values (rows with other types)
+        data = data.dropna()
+
+        # Optional: Convert the column back to int if needed
+        data['type'] = data['type'].astype(float)
+
+        type_col = data['type']
+        data = data.drop(columns='type')
+        data['type'] = type_col
+
+        # Filter data for the specified column
+        data = data[data['column'] == col]
+        data = data.drop(columns=['column']).reset_index(drop=True)
+
+        # Make predictions using the loaded model
+        print(f"Predictions for the data {data}")
+        predictions = self.loaded_model.predict(data)
+
+        # Return the result
+        return "scalar" if predictions[0] == 1 else "identifier"
+    
+
+# CLASS MODEL
+class KolonTipiTahmini1:
+    def __init__(self, threshold=20):
+        self.threshold = threshold
+
+    def fit_transform(self, data, columns=None, max_rows=5000):
+        # Make a copy of the DataFrame 'data' after dropping rows with any NaN values
+        if not isinstance(data, pd.DataFrame):
+            data=pd.DataFrame(data)
+        data_copy = data.dropna(axis=0).copy()
+
+        if len(data_copy) > max_rows:
+            data_copy = data_copy.sample(n=max_rows)
+
+        kolon_role = []  # An empty list that can be used to store the role of each column.
+
+        if columns:
+            data_copy = data_copy[columns]
+
+        for col in data_copy.columns:
+            if len(data_copy[col].unique()) == 1:
+                data_copy.drop(col, axis=1, inplace=True)
+            elif len(data_copy[col].unique()) == 2:
+                kolon_role.append('flag')
+            elif isinstance(data_copy[col].iloc[0], str) and data_copy[col].str.split().str.len().mean() > 4:
+                kolon_role.append('text')
+            elif all([isinstance(val, str) and pd.to_datetime(val, errors='coerce') is not pd.NaT for val in
+                     data_copy[col].values]) or (data_copy[col].dtype == 'datetime64[ns]'):
+                kolon_role.append('date')
+            elif len(data_copy[col].unique()) < self.threshold:
+                kolon_role.append('categoric')
+            elif all(isinstance(val, str) for val in data_copy[col].values):
+                kolon_role.append('object')
+            else:
+                result = separate_words(col)
+
+                if 'id' in map(str.lower, result):
+                    print(f"Role of the column {col} is: identifier as column name includes 'id'")
+                    kolon_role.append('id')
+                else:
+                    predictor = ColumnTypePredictor()
+                    predictor.load_model()
+                    # print(f"This is our data : {data_copy}")
+                    role = predictor.predict_column_type(data_copy, col)
+                    print(f"Role of the column {col} is: {role}")
+                    
+                    if role == 'scalar':
+                        kolon_role.append('scalar')
+                    else:
+                        kolon_role.append('identifier')
+
+
+        if 'date' in kolon_role:
+            date_cols = [col for col, role in zip(data_copy.columns, kolon_role) if role == 'date']
+            for date_col in date_cols:
+                col_idx = data_copy.columns.get_loc(date_col)
+                kolon_role[col_idx] = 'date'
+
+        sonuc = []
+        for i in data_copy.columns:
+            if data_copy.columns.get_loc(i) < len(kolon_role):
+                kolon_role_val = kolon_role[data_copy.columns.get_loc(i)]
+            else:
+                kolon_role_val = "unknown"
+            sonuc.append({
+                'col_name': i,
+                'Role': kolon_role_val})
+
+        result = {}
+        for d in sonuc:
+            col_name = d.pop('col_name')
+            result[col_name] = d
+        return result
+    
+
